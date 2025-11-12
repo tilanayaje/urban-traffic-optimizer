@@ -205,3 +205,32 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Project-specific additions
+
+# Simulation outputs
+logs/
+outputs/
+results/
+simulations/
+*.xml
+*.sumo.cfg
+*.net.xml
+*.rou.xml
+
+# Data files
+data/
+*.csv
+*.json
+*.parquet
+*.sqlite
+*.db
+
+# Visualization exports
+*.png
+*.jpg
+*.svg
+*.pdf
+
+# Temporary notebooks or checkpoints
+notebooks/.ipynb_checkpoints/
