@@ -15,7 +15,7 @@ import traci # Static network information (such as reading and analyzing network
 # Define Sumo configuration
 Sumo_config = [
     'sumo-gui',
-    '-c', 'Traci.sumocfg', # just change the name of the file
+    '-c', 'sumo_data/Traci.sumocfg', # just change the name of the file
     '--step-length', '0.05',
     '--delay', '200',
     '--lateral-resolution', '0.1'

@@ -7,9 +7,28 @@ intersection networks.
 The goal is to **reduce congestion**, **improve throughput**, and **enable real-time visualization** of evolving traffic patterns.
 
 # current functionality
-### note: subject to regular updates.
-- Data is first generated with SUMO simulations (Traci.net.xml, Traci.rou.xml, Traci.netecfg, Traci.sumocfg, )
+## note: subject to regular updates.
 
+## folders
+###  sumo_data
+Contains SUMO files:
+- Traci.net.xml
+    Defines the geometry of the network (edges, junctions, connections, traffic lights).
+- Traci.netecfg
+    Configures the behaviour and routing properties of the network
+- Traci.rou.xml
+    Defines the flow (from-to-edges, provides vehicles that cause congestion, which the GA (genetic algorithm) solves. fitness function metrics are calculated by tracking the behaviour of the vehicles defined in this file).
+- Traci.sumocfg
+    Main config file that Links the network and the routes (Traci.net.xml & Traci.rou.xml).
+
+### src
+Contains Traci1.py
+- Executes SUMO simulation to completio and collects data from Traci.sumocfg.
+
+- Future goal: genetic algorithm implementation.
+
+### Summary
+- Data is first generated with SUMO simulations (Traci.net.xml, Traci.rou.xml, Traci.netecfg, Traci.sumocfg, )
 - Data is then manipulated and read to our liking with Traci1.py 
 
 ### Todolist
