@@ -1,16 +1,15 @@
 # Urban Traffic Optimizer
-**Full Title:** Real-Time Big Data Analytics and Visualization for Urban Traffic Flow Optimization
+### **Full Title:** Real-Time Big Data Analytics and Visualization for Urban Traffic Flow Optimization
 ### Description:
 This project uses **SUMO** (Simulation of Urban MObility) to simulate traffic, which is then fed into a genetic algorithm implemented in Python via the **PyGAD** library to optimize traffic light timings across complex 
 intersection networks. 
 The goal is to **reduce congestion**, **improve throughput**, and **enable real-time visualization** of evolving traffic patterns.
 
 # current functionality
-### note: subject to regular updates.
+*note: subject to regular updates.*
 
-## folders
-###  sumo_data
-Contains SUMO files:
+### folders
+**sumo_data**
 - Traci.net.xml
     Defines the geometry of the network (edges, junctions, connections, traffic lights).
 - Traci.netecfg
@@ -20,15 +19,14 @@ Contains SUMO files:
 - Traci.sumocfg
     Main config file that links the network and the routes (Traci.net.xml & Traci.rou.xml).
 
-### src
-Contains Traci1.py
-- Executes SUMO simulation to completion and collects data from Traci.sumocfg.
-
+**src**
+- Traci1.py: 
+    Executes SUMO simulation to completion and collects data from Traci.sumocfg.
 - Future goal: genetic algorithm implementation.
 
 ### Summary
-- Data is first generated with SUMO simulations (Traci.net.xml, Traci.rou.xml, Traci.netecfg, Traci.sumocfg, )
-- Data is then manipulated and read to our liking with Traci1.py 
+- Data is first generated with SUMO simulations (Traci.net.xml, Traci.rou.xml, Traci.netecfg, Traci.sumocfg).
+- Data is then manipulated and read to our liking with Traci1.py. 
 
 ### Todolist
 -- Import pyGAD and make genetic algorithm for Traci1.py, build fitness function.
