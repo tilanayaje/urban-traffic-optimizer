@@ -8,8 +8,9 @@ The goal is to **reduce congestion**, **improve throughput**, and **enable real-
 
 # current functionality
 ### note: subject to regular updates.
-Data is first generated with SUMO simulations (Traci.net.xml, Traci.rou.xml, Traci.netecfg, Traci.sumocfg, )
-Data is then manipulated and read to our liking with Traci1.py 
+- Data is first generated with SUMO simulations (Traci.net.xml, Traci.rou.xml, Traci.netecfg, Traci.sumocfg, )
+
+- Data is then manipulated and read to our liking with Traci1.py 
 
 ### Todolist
-> Import pyGAD and make genetic algorithm for Traci1.py
+-- Import pyGAD and make genetic algorithm for Traci1.py, build fitness function.
