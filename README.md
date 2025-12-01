@@ -10,6 +10,7 @@ The goal is to **reduce congestion**, **improve throughput**, and **enable real-
 
 ### folders
 **sumo_data**
+(note .route.xml and .net.xml are hidden via .gitignore)
 - Traci.net.xml
     Defines the geometry of the network (edges, junctions, connections, traffic lights).
 - Traci.netecfg
