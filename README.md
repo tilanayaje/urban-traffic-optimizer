@@ -12,4 +12,4 @@ Data is first generated with SUMO simulations (Traci.net.xml, Traci.rou.xml, Tra
 Data is then manipulated and read to our liking with Traci1.py 
 
 ### Todolist
-> Import pyGAD and make genetic algorithm for Traci1.py
+-- Import pyGAD and make genetic algorithm for Traci1.py, build fitness function.
