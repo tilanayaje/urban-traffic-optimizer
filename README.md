@@ -1,5 +1,5 @@
 # Urban Traffic Optimizer
-### **Full Title:** 🚦 🚗 Real-Time Big Data Analytics and Visualization for Urban Traffic Flow Optimization 💨
+### **Full Title:** 🚗 Real-Time Big Data Analytics and Visualization for Urban Traffic Flow Optimization 💨
 ### Description:
 This project uses **SUMO** (Simulation of Urban MObility) to simulate traffic, which is then fed into a genetic algorithm implemented in Python via the **PyGAD** library to optimize traffic light timings across complex 
 intersection networks. 
