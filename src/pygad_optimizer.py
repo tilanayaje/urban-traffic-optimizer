@@ -1,9 +1,9 @@
 import pygad
 import random
-from eval_timings import evaluate   # <-- your existing function
+from eval_timings import evaluate   # <-- existing function
 
 # ============================================================
-# GLOBAL CONFIG (USE THESE)
+# GLOBAL CONFIG (USE THESE) 
 # ============================================================
 
 TL_ID = "J11"
