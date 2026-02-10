@@ -12,10 +12,15 @@ import traci # Static network information (such as reading and analyzing network
 
 ## Modify code below.
 
+# compute repo from script path
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent.parent
+SUMOCFG = ROOT / "sumo_data" / "Traci.sumocfg"
+
 # Define Sumo configuration
 Sumo_config = [
     'sumo-gui',
-    '-c', 'sumo_data/Traci.sumocfg', # just change the name of the file
+    '-c', str(SUMOCFG), # just change the name of the file
     '--step-length', '0.05',
     '--delay', '200',
     '--lateral-resolution', '0.1'
@@ -56,13 +61,16 @@ def update_speed_and_position():
 
 # Take simulation steps until there are no more vehicles in the network
 # While Loop
+total_wait = 0.0
+step = 0
 while traci.simulation.getMinExpectedNumber() > 0:
     traci.simulationStep() # Move simulation forward 1 step
+    step += 1
+    if step % 200 == 0:
+        print("step", step, "vehicles", len(traci.vehicle.getIDList()))
 
-    # Here you can decide what to do with simulation data at each step
-
-    # Modify code below.
-    update_speed_and_position()
+    for vid in traci.vehicle.getIDList():
+        total_wait += traci.vehicle.getWaitingTime(vid)
     # total_speed = total_speed + vehicle_speed # NOTE: If you use the global total_speed, 
                                             # this calculation should be moved inside the function.
                                             # For now, it is commented out for simplicity.
