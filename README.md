@@ -9,7 +9,7 @@ The goal is to **reduce congestion**, **improve throughput**, and **enable real-
 *note: subject to regular updates.*
 
 ### folders
-**sumo_data**
+**📁 sumo_data**
 (note .route.xml and .net.xml are hidden via .gitignore)
 - Traci.net.xml
     Defines the geometry of the network (edges, junctions, connections, traffic lights).
@@ -20,7 +20,7 @@ The goal is to **reduce congestion**, **improve throughput**, and **enable real-
 - Traci.sumocfg
     Main config file that links the network and the routes (Traci.net.xml & Traci.rou.xml).
   
-**src**
+**📁 src**
 - Traci1.py: 
     Executes SUMO simulation to completion and collects data from Traci.sumocfg.
 - eval_timings.py
@@ -28,8 +28,6 @@ The goal is to **reduce congestion**, **improve throughput**, and **enable real-
 - pygad_optimizer.py
     Uses PyGAD to evolve traffic light phase durations.
     Each chromosome represents a timing plan, which is evaluated by running a full SUMO simulation.
-
-- Future goal: genetic algorithm implementation.
 
 ### Summary
 - Data is first generated with SUMO simulations (Traci.net.xml, Traci.rou.xml, Traci.netecfg, Traci.sumocfg).
@@ -46,15 +44,23 @@ Current optimization model: Currently optimizes one single intersection:
 
 gA = green duration for phase A.
 gB = green duration for phase B.
-yellow phases remain fixed.
+Yellow phases remain fixed.
+
 Fitness currently balances throughput and waiting time.
 
 ### Todolist
 -- refine PyGAD parameter tuning
+
 -- reduce runtime per GA generation
+
 -- expand chromosome to multiple intersections
+
 -- add visualization of optimization progress
+
 -- log best timing configurations
+
 -- support real-time traffic visualization
+
 -- coordinate multiple traffic lights
+
 -- experiment with multi-objective optimization
