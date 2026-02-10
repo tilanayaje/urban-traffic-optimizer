@@ -25,8 +25,9 @@ The goal is to **reduce congestion**, **improve throughput**, and **enable real-
     Executes SUMO simulation to completion and collects data from Traci.sumocfg.
 - eval_timings.py
     Runs SUMO repeatedly while modifying traffic light timings. Evaluates congestion metrics and is used by the genetic algorithm.
-- (WIP) pygad_optimizer.py
-    Will contain the PyGAD-based genetic algorithm that evolves traffic light timings.
+- pygad_optimizer.py
+    Uses PyGAD to evolve traffic light phase durations.
+    Each chromosome represents a timing plan, which is evaluated by running a full SUMO simulation.
 
 - Future goal: genetic algorithm implementation.
 
@@ -38,5 +39,22 @@ The goal is to **reduce congestion**, **improve throughput**, and **enable real-
 - evaluates congestion metrics
 - evolves better timing plans via a genetic algorithm
 
+## Optimization Model
+Current optimization model: Currently optimizes one single intersection:
+
+        [gA, gB]
+
+gA = green duration for phase A.
+gB = green duration for phase B.
+yellow phases remain fixed.
+Fitness currently balances throughput and waiting time.
+
 ### Todolist
---  Import pyGAD and make genetic algorithm for Traci1.py, build fitness function.
+-- refine PyGAD parameter tuning
+-- reduce runtime per GA generation
+-- expand chromosome to multiple intersections
+-- add visualization of optimization progress
+-- log best timing configurations
+-- support real-time traffic visualization
+-- coordinate multiple traffic lights
+-- experiment with multi-objective optimization
