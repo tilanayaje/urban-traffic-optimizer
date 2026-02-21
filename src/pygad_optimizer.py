@@ -15,7 +15,8 @@ def on_generation(ga_instance):
     generation = ga_instance.generations_completed
     
     # 1. Get the best solution from this generation
-    best_solution, best_fitness, _ = ga_instance.best_solution()
+    #best_solution, best_fitness, _ = ga_instance.best_solution()
+    best_solution, best_fitness, _ = ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)
     gA = int(best_solution[0])
     gB = int(best_solution[1])
 
@@ -47,7 +48,7 @@ def on_generation(ga_instance):
 # GLOBAL CONFIG (USE THESE) 
 # ============================================================
 
-TL_ID = "0"      # from your Traci.net.xml
+TL_ID = "J11"
 
 GREEN_MIN = 10
 GREEN_MAX = 80
