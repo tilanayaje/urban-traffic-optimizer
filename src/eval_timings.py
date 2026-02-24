@@ -11,13 +11,22 @@ else:
 import traci
 
 
-# --- Paths (this prevents the ../ issue forever) ---
-ROOT = Path(__file__).resolve().parent.parent          # repo root
-SUMOCFG = ROOT / "sumo_data" / "Traci.sumocfg"
+# --- Paths (absolute, so cwd never matters) ---
+ROOT = Path(__file__).resolve().parent.parent  # repo root
+
+# default to generated map (everyone has the same one)
+MAP = os.environ.get("SUMO_MAP", "generated")
+SUMO_DIR = ROOT / "sumo_data" / MAP
+SUMOCFG = ROOT / "sumo_data" / MAP / "Traci.sumocfg"
+
+# fail fast if missing (helps teammates)
+if not SUMOCFG.exists():
+    raise FileNotFoundError(f"Missing SUMO config: {SUMOCFG}")
 
 TL_ID = "J11"      # from your Traci.net.xml
 YELLOW = 3         # keep fixed
 MAX_STEPS = 4000   # fixed horizon so runs are comparable
+
 
 
 def start_sumo(gui=False):
@@ -35,7 +44,7 @@ def start_sumo(gui=False):
 
 def set_J11_greens(gA: int, gB: int):
     """
-    J11 has 4 phases in your net:
+    J11 has 4 phases in the net:
       0: greenA
       1: yellow
       2: greenB

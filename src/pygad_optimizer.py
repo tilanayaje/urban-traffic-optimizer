@@ -1,6 +1,55 @@
+import os
+import csv
 import pygad
 import random
 from eval_timings import evaluate   # <-- existing function
+
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+MAP = os.environ.get("SUMO_MAP", "generated")
+CSV_PATH = ROOT / "sumo_data" / MAP / "ga_history.csv"
+
+# deletes existing csv for clarity
+if CSV_PATH.exists():
+    CSV_PATH.unlink()
+
+# ============================================================
+# LOGGING FUNCTION (Added for Dashboard)
+# ============================================================
+def on_generation(ga_instance):
+    """
+    Runs after every generation to save data for the Dashboard.
+    """
+    generation = ga_instance.generations_completed
+    
+    # 1. Get the best solution from this generation
+    #best_solution, best_fitness, _ = ga_instance.best_solution()
+    best_solution, best_fitness, _ = ga_instance.best_solution(pop_fitness=ga_instance.last_generation_fitness)
+    gA = int(best_solution[0])
+    gB = int(best_solution[1])
+
+    # 2. Re-run evaluate() briefly to get the specific "Throughput" and "Wait" numbers.
+    #    (The 'fitness' variable bundles them together, but the dashboard needs them separate).
+    metrics = evaluate(gA, gB, gui=False, verbose=False)
+    
+    throughput = metrics["arrived_total"]
+    total_wait = metrics["total_wait"]
+    
+    # Calculate Average Wait (Total Wait / Cars Arrived)
+    avg_wait = total_wait / throughput if throughput > 0 else 0
+
+    print(f" >> [Log] Gen {generation}: Saved to CSV (Fit: {best_fitness:.2f})")
+
+    # 3. Write to CSV
+    file_exists = CSV_PATH.exists()
+    with open(CSV_PATH, "a", newline="") as f:
+        writer = csv.writer(f)
+        # Write headers if it's a new file
+        if not file_exists:
+            writer.writerow(["generation", "fitness", "avg_waiting_time", "throughput", "green_north", "green_east"])
+            
+        writer.writerow([generation, best_fitness, avg_wait, throughput, gA, gB])
 
 # ============================================================
 # GLOBAL CONFIG (USE THESE) 
@@ -71,6 +120,8 @@ ga_instance = pygad.GA(
 
     save_best_solutions=True,
     suppress_warnings=True,
+
+    on_generation=on_generation
 )
 
 
