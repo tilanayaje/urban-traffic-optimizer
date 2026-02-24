@@ -217,6 +217,7 @@ simulations/
 *.sumo.cfg
 *.net.xml
 *.rou.xml
+sumo_data/generated/
 
 # Data files
 data/
