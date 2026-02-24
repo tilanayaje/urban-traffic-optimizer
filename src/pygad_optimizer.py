@@ -4,6 +4,15 @@ import pygad
 import random
 from eval_timings import evaluate   # <-- existing function
 
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+MAP = os.environ.get("SUMO_MAP", "generated")
+CSV_PATH = ROOT / "sumo_data" / MAP / "ga_history.csv"
+
+# deletes existing csv for clarity
+if CSV_PATH.exists():
+    CSV_PATH.unlink()
 
 # ============================================================
 # LOGGING FUNCTION (Added for Dashboard)
@@ -33,10 +42,8 @@ def on_generation(ga_instance):
     print(f" >> [Log] Gen {generation}: Saved to CSV (Fit: {best_fitness:.2f})")
 
     # 3. Write to CSV
-    filename = "ga_history.csv"
-    file_exists = os.path.isfile(filename)
-    
-    with open(filename, "a", newline="") as f:
+    file_exists = CSV_PATH.exists()
+    with open(CSV_PATH, "a", newline="") as f:
         writer = csv.writer(f)
         # Write headers if it's a new file
         if not file_exists:

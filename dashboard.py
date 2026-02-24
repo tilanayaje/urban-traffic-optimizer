@@ -19,13 +19,19 @@ dashboard_placeholder = st.empty()
 
 # --- HELPER FUNCTION TO LOAD DATA ---
 def load_data():
-    if os.path.exists("ga_history.csv"):
+    # repo root = folder where dashboard.py lives
+    ROOT = os.path.dirname(os.path.abspath(__file__))
+    # match your project default
+    MAP = os.environ.get("SUMO_MAP", "generated")
+
+    csv_path = os.path.join(ROOT, "sumo_data", MAP, "ga_history.csv")
+
+    if os.path.exists(csv_path):
         try:
-            # We use try-except just in case Streamlit tries to read the file 
-            # at the exact millisecond the simulation is writing to it.
-            return pd.read_csv("ga_history.csv")
+            return pd.read_csv(csv_path)
         except Exception:
             return pd.DataFrame()
+
     return pd.DataFrame()
 
 # --- REAL-TIME LOOP ---

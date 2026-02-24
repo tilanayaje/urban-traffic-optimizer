@@ -3,12 +3,14 @@ import subprocess
 from sumolib import checkBinary
 
 # 1. Setup the data directory
-data_dir = os.path.join(os.path.dirname(__file__), "..", "sumo_data")
+data_dir = os.path.join(os.path.dirname(__file__), "..", "sumo_data", "generated")
 os.makedirs(data_dir, exist_ok=True)
 
 print("Generating Custom SUMO Network for J11...")
 
 # 2. Create the Nodes (The intersections and endpoints)
+# Smart idea to generate a consistent network for all users for testing purposes.
+# Important note: We can always expand the network from this file directly.
 nodes_xml = """<nodes>
     <node id="J11" x="0.0" y="0.0" type="traffic_light"/>
     <node id="North" x="0.0" y="200.0" type="priority"/>
