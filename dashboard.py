@@ -1,10 +1,11 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from scipy import stats
 import time
 import os
 
-# --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="Urban Traffic Optimization Dashboard",
     layout="wide",
@@ -12,93 +13,179 @@ st.set_page_config(
 )
 
 st.title("Real-Time Traffic Flow Optimization")
-st.markdown("Monitoring Genetic Algorithm progress on the **J11 Urban Traffic Network**")
+st.markdown("Genetic Algorithm optimizing **3 coordinated intersections** — J1, J2, J3")
 
-# Create a placeholder for the live-updating content
-dashboard_placeholder = st.empty()
 
-# --- HELPER FUNCTION TO LOAD DATA ---
-def load_data():
+def load_ga():
     if os.path.exists("ga_history.csv"):
         try:
-            # We use try-except just in case Streamlit tries to read the file 
-            # at the exact millisecond the simulation is writing to it.
             return pd.read_csv("ga_history.csv")
         except Exception:
             return pd.DataFrame()
     return pd.DataFrame()
 
-# --- REAL-TIME LOOP ---
-while True:
-    df = load_data()
-    
-    with dashboard_placeholder.container():
-        # Check if we have data to show
-        if not df.empty and len(df) > 0:
-            latest = df.iloc[-1]
-            first = df.iloc[0]
-            
-            # --- ROW 1: KEY PERFORMANCE INDICATORS ---
-            kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-            
-            kpi1.metric(
-                label="Current Generation",
-                value=int(latest['generation'])
-            )
-            
-            # Wait Time Delta (Current vs First)
-            wait_delta = latest['avg_waiting_time'] - first['avg_waiting_time']
-            kpi2.metric(
-                label="Avg Waiting Time (s)",
-                value=f"{latest['avg_waiting_time']:.1f}",
-                delta=f"{wait_delta:.1f} s",
-                delta_color="inverse" # Green means lower time (which is good for traffic)
-            )
-            
-            # Throughput Delta
-            thru_delta = latest['throughput'] - first['throughput']
-            kpi3.metric(
-                label="Throughput (Cars)",
-                value=int(latest['throughput']),
-                delta=int(thru_delta)
-            )
 
-            kpi4.metric(
-                label="Best Fitness Score",
-                value=f"{latest['fitness']:.2f}"
-            )
+def load_comparison():
+    if os.path.exists("comparison_results.csv"):
+        try:
+            return pd.read_csv("comparison_results.csv")
+        except Exception:
+            return pd.DataFrame()
+    return pd.DataFrame()
 
-            # --- ROW 2: CHARTS ---
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Chart 1: Waiting Time Reduction (Proves the algorithm works)
-                fig_wait = px.line(
-                    df, 
-                    x='generation', 
-                    y='avg_waiting_time',
-                    title='📉 Average Waiting Time (Lower is Better)',
-                    markers=True,
-                    template="plotly_dark"
+
+# ── Tabs ──────────────────────────────────────────────────────────────
+tab1, tab2 = st.tabs(["🧬 GA Optimization Progress", "📊 Baseline vs GA Comparison"])
+
+
+# ══════════════════════════════════════════════════════════════════════
+# TAB 1 — GA live progress
+# ══════════════════════════════════════════════════════════════════════
+with tab1:
+    df = load_ga()
+
+    if not df.empty:
+        latest = df.iloc[-1]
+        first  = df.iloc[0]
+
+        k1, k2, k3, k4 = st.columns(4)
+        k1.metric("Generation", int(latest["generation"]))
+        k2.metric(
+            "Avg Wait Time (s)",
+            f"{latest['avg_waiting_time']:.1f}",
+            delta=f"{latest['avg_waiting_time'] - first['avg_waiting_time']:.1f} s",
+            delta_color="inverse",
+        )
+        k3.metric(
+            "Throughput (cars)",
+            int(latest["throughput"]),
+            delta=int(latest["throughput"] - first["throughput"]),
+        )
+        k4.metric("Best Fitness", f"{latest['fitness']:.2f}")
+
+        st.divider()
+
+        col1, col2 = st.columns(2)
+        with col1:
+            fig_wait = px.line(
+                df, x="generation", y="avg_waiting_time",
+                title="📉 Avg Wait Time per Generation (lower = better)",
+                markers=True, template="plotly_dark",
+            )
+            fig_wait.update_traces(line_color="#FF4B4B")
+            st.plotly_chart(fig_wait, use_container_width=True)
+
+        with col2:
+            fig_fit = px.line(
+                df, x="generation", y="fitness",
+                title="📈 Fitness Score per Generation (higher = better)",
+                markers=True, template="plotly_dark",
+            )
+            fig_fit.update_traces(line_color="#00CC96")
+            st.plotly_chart(fig_fit, use_container_width=True)
+
+        st.subheader("⏱️ Traffic Light Phase Evolution (All 3 Intersections)")
+        c1, c2, c3 = st.columns(3)
+        for col, jid, ga_col, gb_col in [
+            (c1, "J1", "green_J1_A", "green_J1_B"),
+            (c2, "J2", "green_J2_A", "green_J2_B"),
+            (c3, "J3", "green_J3_A", "green_J3_B"),
+        ]:
+            if ga_col in df.columns:
+                fig = px.line(
+                    df, x="generation", y=[ga_col, gb_col],
+                    title=f"{jid} — Green Phase Durations",
+                    markers=True, template="plotly_dark",
+                    labels={"value": "Duration (s)", "variable": "Phase"},
                 )
-                fig_wait.update_traces(line_color='#FF4B4B')
-                st.plotly_chart(fig_wait, use_container_width=True, key=f"wait_chart_{time.time()}")
+                col.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("⏳ Waiting for GA data... Run pygad_optimizer.py to start.")
 
-            with col2:
-                # Chart 2: Traffic Light Timing Evolution (Shows the genes mutating)
-                fig_timings = px.line(
-                    df,
-                    x='generation',
-                    y=['green_north', 'green_east'],
-                    title='⏱️ Traffic Light Phase Evolution (Genes)',
-                    markers=True,
-                    template="plotly_dark"
-                )
-                st.plotly_chart(fig_timings, use_container_width=True, key=f"time_chart_{time.time()}")
-        
-        else:
-            # Show a loading message if the CSV isn't ready yet
-            st.info("Waiting for simulation data... The dashboard will update automatically.")
-            
-    # Refresh the dashboard every 2 seconds
-    time.sleep(2)
+
+# ══════════════════════════════════════════════════════════════════════
+# TAB 2 — Baseline vs GA comparison
+# ══════════════════════════════════════════════════════════════════════
+with tab2:
+    cdf = load_comparison()
+
+    if cdf.empty:
+        st.info("⏳ No comparison data yet. Run baseline.py to generate it.")
+    else:
+        baseline = cdf[cdf["condition"] == "Baseline"]
+        ga       = cdf[cdf["condition"] == "GA_Optimized"]
+
+        # ── KPIs ──────────────────────────────────────────────────────
+        st.subheader("Summary")
+        k1, k2, k3, k4 = st.columns(4)
+
+        baseline_mean_wait = baseline["avg_wait"].mean()
+        ga_mean_wait       = ga["avg_wait"].mean()
+        pct_reduction      = (baseline_mean_wait - ga_mean_wait) / baseline_mean_wait * 100
+
+        k1.metric("Baseline Avg Wait",   f"{baseline_mean_wait:.1f}s")
+        k2.metric("GA Avg Wait",         f"{ga_mean_wait:.1f}s")
+        k3.metric("Wait Time Reduction", f"{pct_reduction:.1f}%")
+        k4.metric(
+            "Throughput Increase",
+            f"+{ga['throughput'].mean() - baseline['throughput'].mean():.0f} cars",
+        )
+
+        st.divider()
+
+        # ── Statistical significance ───────────────────────────────────
+        t_stat, p_value = stats.ttest_ind(
+            baseline["avg_wait"].values,
+            ga["avg_wait"].values,
+            equal_var=False
+        )
+
+        st.subheader("Statistical Significance (Welch's t-test)")
+        sig_col1, sig_col2, sig_col3 = st.columns(3)
+        sig_col1.metric("t-statistic", f"{t_stat:.2f}")
+        sig_col2.metric("p-value",     f"{p_value:.6f}")
+        sig_col3.metric(
+            "Result",
+            "✅ Significant" if p_value < 0.05 else "❌ Not Significant",
+        )
+
+        st.divider()
+
+        # ── Charts ────────────────────────────────────────────────────
+        chart1, chart2 = st.columns(2)
+
+        with chart1:
+            fig_box = px.box(
+                cdf, x="condition", y="avg_wait",
+                color="condition",
+                title="🕐 Wait Time Distribution: Baseline vs GA (10 runs each)",
+                template="plotly_dark",
+                labels={"avg_wait": "Avg Wait Time (s)", "condition": ""},
+                color_discrete_map={
+                    "Baseline":     "#FF4B4B",
+                    "GA_Optimized": "#00CC96",
+                },
+            )
+            st.plotly_chart(fig_box, use_container_width=True)
+
+        with chart2:
+            fig_thru = px.box(
+                cdf, x="condition", y="throughput",
+                color="condition",
+                title="🚗 Throughput Distribution: Baseline vs GA (10 runs each)",
+                template="plotly_dark",
+                labels={"throughput": "Cars Arrived", "condition": ""},
+                color_discrete_map={
+                    "Baseline":     "#FF4B4B",
+                    "GA_Optimized": "#00CC96",
+                },
+            )
+            st.plotly_chart(fig_thru, use_container_width=True)
+
+        # ── Run-by-run table ──────────────────────────────────────────
+        st.subheader("Run-by-Run Results")
+        display = cdf[["condition", "run", "avg_wait", "throughput", "fitness"]].copy()
+        display.columns = ["Condition", "Run", "Avg Wait (s)", "Throughput", "Fitness"]
+        display["Avg Wait (s)"] = display["Avg Wait (s)"].round(2)
+        display["Fitness"]      = display["Fitness"].round(2)
+        st.dataframe(display, use_container_width=True, hide_index=True)

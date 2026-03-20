@@ -234,3 +234,5 @@ data/
 
 # Temporary notebooks or checkpoints
 notebooks/.ipynb_checkpoints/
+compare_backup/
+compare_new/
