@@ -1,63 +1,149 @@
+"""
+baseline.py
+Runs the 20-intersection grid network with:
+  1. SUMO default timing (42s/42s on all 20 intersections) — baseline condition
+  2. GA-optimized timing — read from ga_history.csv best row
+
+Runs each condition N_RUNS times with different seeds,
+then performs a Welch's t-test on avg_wait to confirm
+the GA improvement is statistically significant.
+"""
 import os
 import sys
 import csv
-import random
+import json
 from pathlib import Path
+from scipy import stats
 
-# --- SUMO setup ---
-if "SUMO_HOME" in os.environ:
-    sys.path.append(str(Path(os.environ["SUMO_HOME"]) / "tools"))
-else:
-    sys.exit("Please declare environment variable 'SUMO_HOME'")
+# Add src to path so we can import eval_timings
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
 
-from eval_timings import evaluate, fitness
+from eval_timings import evaluate, fitness, TL_IDS, N_INTERSECTIONS
 
 # ============================================================
-# BASELINE CONFIG
-# These are the exact default timings SUMO assigned at runtime
-# via netconvert — confirmed via TraCI inspection.
-# gA=42s, gB=42s on all 3 intersections.
+# CONFIG
 # ============================================================
-BASELINE_GA1, BASELINE_GB1 = 42, 42  # J1
-BASELINE_GA2, BASELINE_GB2 = 42, 42  # J2
-BASELINE_GA3, BASELINE_GB3 = 42, 42  # J3
-
-# GA best solution from optimization run
-GA_GA1, GA_GB1 = 23, 15  # J1
-GA_GA2, GA_GB2 = 24, 13  # J2
-GA_GA3, GA_GB3 = 17, 20  # J3
-
-N_RUNS = 10        # number of repeat runs per condition
-ALPHA  = 0.01      # must match pygad_optimizer.py
-OUTPUT = "comparison_results.csv"
+BASELINE_PHASE = 42          # SUMO default green duration (seconds)
+N_RUNS         = 10
+ALPHA          = 0.001       # must match pygad_optimizer.py
+OUTPUT         = "comparison_results.csv"
 
 
-def run_condition(label, gA1, gB1, gA2, gB2, gA3, gB3, n_runs):
-    """
-    Run the same timing plan N times and return list of metric dicts.
-    Each run uses a different random seed via SUMO's --random flag.
-    """
+# ============================================================
+# LOAD BEST GA SOLUTION FROM ga_history.csv
+# ============================================================
+def load_best_ga_genes() -> list:
+    """Read the row with highest fitness from ga_history.csv."""
+    history_file = ROOT / "ga_history.csv"
+    if not history_file.exists():
+        raise FileNotFoundError("ga_history.csv not found. Run pygad_optimizer.py first.")
+
+    best_row  = None
+    best_fit  = -1e18
+
+    with open(history_file, newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            fit = float(row["fitness"])
+            if fit > best_fit:
+                best_fit = fit
+                best_row = row
+
+    if best_row is None:
+        raise ValueError("ga_history.csv is empty.")
+
+    # Extract genes dynamically — columns after the first 4 are gene values
+    genes = []
+    for tl_id in TL_IDS:
+        genes.append(int(float(best_row[f"green_{tl_id}_A"])))
+        genes.append(int(float(best_row[f"green_{tl_id}_B"])))
+
+    print(f"[Baseline] Best GA solution loaded: fitness={best_fit:.2f}")
+    print(f"           First 3 intersections: "
+          f"{TL_IDS[0]}=({genes[0]},{genes[1]}) "
+          f"{TL_IDS[1]}=({genes[2]},{genes[3]}) "
+          f"{TL_IDS[2]}=({genes[4]},{genes[5]})")
+    return genes
+
+
+# ============================================================
+# RUN ONE CONDITION
+# ============================================================
+def run_condition(label: str, genes: list, n_runs: int) -> list:
     results = []
     for i in range(n_runs):
-        seed = 42 + i  # deterministic but unique per run: 42, 43, 44...
+        seed = 42 + i
         print(f"[{label}] Run {i+1}/{n_runs} (seed={seed}) ...")
-        m = evaluate(gA1, gB1, gA2, gB2, gA3, gB3, gui=False, verbose=False, seed=seed)
+        m = evaluate(genes, gui=False, verbose=False, seed=seed)
         f = fitness(m, alpha=ALPHA)
         avg_wait = m["total_wait"] / m["arrived_total"] if m["arrived_total"] > 0 else 0
         results.append({
-            "condition":      label,
-            "run":            i + 1,
-            "fitness":        f,
-            "avg_wait":       avg_wait,
-            "throughput":     m["arrived_total"],
-            "total_wait":     m["total_wait"],
-            "avg_speed":      m["avg_speed"],
+            "condition":  label,
+            "run":        i + 1,
+            "fitness":    f,
+            "avg_wait":   avg_wait,
+            "throughput": m["arrived_total"],
+            "total_wait": m["total_wait"],
+            "avg_speed":  m["avg_speed"],
         })
         print(f"  -> avg_wait={avg_wait:.2f}s  throughput={m['arrived_total']}  fitness={f:.2f}")
     return results
 
 
-def save_results(all_results):
+# ============================================================
+# STATS
+# ============================================================
+def summarize(label: str, results: list):
+    waits      = [r["avg_wait"]   for r in results]
+    throughputs = [r["throughput"] for r in results]
+    fitnesses  = [r["fitness"]    for r in results]
+    print(f"\n--- {label} ({len(results)} runs) ---")
+    print(f"  Avg Wait:   mean={sum(waits)/len(waits):.2f}s  "
+          f"min={min(waits):.2f}s  max={max(waits):.2f}s")
+    print(f"  Throughput: mean={sum(throughputs)/len(throughputs):.1f}  "
+          f"min={min(throughputs)}  max={max(throughputs)}")
+    print(f"  Fitness:    mean={sum(fitnesses)/len(fitnesses):.2f}  "
+          f"min={min(fitnesses):.2f}  max={max(fitnesses):.2f}")
+
+
+def t_test(baseline_results: list, ga_results: list):
+    bw = [r["avg_wait"] for r in baseline_results]
+    gw = [r["avg_wait"] for r in ga_results]
+    t_stat, p_value = stats.ttest_ind(bw, gw, equal_var=False)
+    print("\n--- Statistical Significance (Welch's t-test on Avg Wait Time) ---")
+    print(f"  Baseline mean: {sum(bw)/len(bw):.2f}s")
+    print(f"  GA mean:       {sum(gw)/len(gw):.2f}s")
+    print(f"  t-statistic:   {t_stat:.4f}")
+    print(f"  p-value:       {p_value:.6f}")
+    if p_value < 0.05:
+        print("  Result: SIGNIFICANT (p < 0.05) — GA improvement is not due to chance.")
+    else:
+        print("  Result: NOT significant (p >= 0.05) — cannot rule out random variation.")
+    return t_stat, p_value
+
+
+# ============================================================
+# MAIN
+# ============================================================
+if __name__ == "__main__":
+    # Baseline genes: 42s/42s on all 20 intersections
+    baseline_genes = [BASELINE_PHASE] * (N_INTERSECTIONS * 2)
+
+    # GA genes: best solution from ga_history.csv
+    ga_genes = load_best_ga_genes()
+
+    print("=" * 60)
+    print(f"BASELINE vs GA — 20 Intersections")
+    print(f"Baseline: {BASELINE_PHASE}s/{BASELINE_PHASE}s on all {N_INTERSECTIONS} intersections")
+    print(f"Runs per condition: {N_RUNS}")
+    print("=" * 60)
+
+    baseline_results = run_condition("Baseline",     baseline_genes, N_RUNS)
+    ga_results       = run_condition("GA_Optimized", ga_genes,       N_RUNS)
+
+    # Save
+    all_results = baseline_results + ga_results
     with open(OUTPUT, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=[
             "condition", "run", "fitness", "avg_wait",
@@ -67,81 +153,8 @@ def save_results(all_results):
         writer.writerows(all_results)
     print(f"\nResults saved to {OUTPUT}")
 
-
-def summarize(label, results):
-    waits = [r["avg_wait"] for r in results]
-    throughputs = [r["throughput"] for r in results]
-    fitnesses = [r["fitness"] for r in results]
-
-    print(f"\n--- {label} ({len(results)} runs) ---")
-    print(f"  Avg Wait:     mean={sum(waits)/len(waits):.2f}s  "
-          f"min={min(waits):.2f}s  max={max(waits):.2f}s")
-    print(f"  Throughput:   mean={sum(throughputs)/len(throughputs):.1f}  "
-          f"min={min(throughputs)}  max={max(throughputs)}")
-    print(f"  Fitness:      mean={sum(fitnesses)/len(fitnesses):.2f}  "
-          f"min={min(fitnesses):.2f}  max={max(fitnesses):.2f}")
-
-
-def t_test(baseline_results, ga_results):
-    """
-    Welch's t-test on avg_wait between baseline and GA conditions.
-    Does not assume equal variance — more appropriate here.
-    """
-    from scipy import stats
-
-    baseline_waits = [r["avg_wait"] for r in baseline_results]
-    ga_waits       = [r["avg_wait"] for r in ga_results]
-
-    t_stat, p_value = stats.ttest_ind(baseline_waits, ga_waits, equal_var=False)
-
-    print("\n--- Statistical Significance (Welch's t-test on Avg Wait Time) ---")
-    print(f"  Baseline mean: {sum(baseline_waits)/len(baseline_waits):.2f}s")
-    print(f"  GA mean:       {sum(ga_waits)/len(ga_waits):.2f}s")
-    print(f"  t-statistic:   {t_stat:.4f}")
-    print(f"  p-value:       {p_value:.6f}")
-
-    if p_value < 0.05:
-        print("  Result: SIGNIFICANT (p < 0.05) — the GA improvement is not due to chance.")
-    else:
-        print("  Result: NOT significant (p >= 0.05) — cannot rule out random variation.")
-
-    return t_stat, p_value
-
-
-if __name__ == "__main__":
-    print("=" * 60)
-    print("BASELINE vs GA COMPARISON")
-    print(f"Baseline: gA=gB=42s on all 3 intersections (SUMO default)")
-    print(f"GA:       J1({GA_GA1}/{GA_GB1}) J2({GA_GA2}/{GA_GB2}) J3({GA_GA3}/{GA_GB3})")
-    print(f"Runs per condition: {N_RUNS}")
-    print("=" * 60)
-
-    # Run baseline
-    baseline_results = run_condition(
-        "Baseline",
-        BASELINE_GA1, BASELINE_GB1,
-        BASELINE_GA2, BASELINE_GB2,
-        BASELINE_GA3, BASELINE_GB3,
-        N_RUNS
-    )
-
-    # Run GA best solution
-    ga_results = run_condition(
-        "GA_Optimized",
-        GA_GA1, GA_GB1,
-        GA_GA2, GA_GB2,
-        GA_GA3, GA_GB3,
-        N_RUNS
-    )
-
-    # Save to CSV
-    save_results(baseline_results + ga_results)
-
-    # Print summaries
-    summarize("Baseline", baseline_results)
+    summarize("Baseline",     baseline_results)
     summarize("GA_Optimized", ga_results)
-
-    # Statistical test
     t_test(baseline_results, ga_results)
 
-    print("\nDone. Use comparison_results.csv to generate box plots.")
+    print("\nDone. Use comparison_results.csv for box plots in the dashboard.")

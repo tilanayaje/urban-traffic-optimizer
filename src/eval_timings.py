@@ -3,7 +3,7 @@ from pathlib import Path
 
 # --- Paths ---
 ROOT      = Path(__file__).resolve().parent.parent
-SUMO_DIR  = ROOT / "sumo_data" / "generated"
+SUMO_DIR  = ROOT / "sumo_data" / "grid20"
 SUMOCFG   = SUMO_DIR / "Traci.sumocfg"
 CACHE_DIR = ROOT / "worker_cache"
 
@@ -19,10 +19,14 @@ import traci
 
 # ---------------------------------------------------------------
 # NETWORK CONFIG
+# 4x5 grid: cols 0-3, rows 0-4
 # ---------------------------------------------------------------
-TL_IDS    = ["J1", "J2", "J3"]
+COLS = 4
+ROWS = 5
+TL_IDS = [f"J_{col}_{row}" for col in range(COLS) for row in range(ROWS)]  # 20 TLs
+N_INTERSECTIONS = len(TL_IDS)  # 20
 YELLOW    = 3
-MAX_STEPS = 5000
+MAX_STEPS = 8000   # larger network needs more steps
 
 # ---------------------------------------------------------------
 # PORT ALLOCATOR
@@ -55,6 +59,10 @@ def start_sumo(gui: bool = False, seed: int = None, port: int = None):
 
 
 def set_greens(phases_dict: dict, label: str = None):
+    """
+    phases_dict = { "J_0_0": (gA, gB), "J_0_1": (gA, gB), ... }
+    4-phase layout: greenA, yellow, greenB, yellow
+    """
     conn = traci.getConnection(label) if label else traci
     for tl_id, (gA, gB) in phases_dict.items():
         gA = max(5, int(gA))
@@ -81,23 +89,30 @@ def fitness(metrics: dict, alpha: float = 0.01) -> float:
 # EVALUATE
 # ---------------------------------------------------------------
 def evaluate(
-    gA1: int, gB1: int,
-    gA2: int, gB2: int,
-    gA3: int, gB3: int,
+    genes:   list,          # 40 values: [gA0, gB0, gA1, gB1, ..., gA19, gB19]
     gui:     bool = False,
     verbose: bool = False,
     seed:    int  = None,
     port:    int  = None,
 ) -> dict:
+    """
+    genes: flat list of 40 ints — pairs of (gA, gB) for each of the 20 intersections
+    in the same order as TL_IDS.
+    """
+    assert len(genes) == N_INTERSECTIONS * 2, \
+        f"Expected {N_INTERSECTIONS*2} genes, got {len(genes)}"
+
     label = str(port) if port is not None else None
     start_sumo(gui=gui, seed=seed, port=port)
     conn = traci.getConnection(label) if label else traci
 
-    set_greens({
-        "J1": (gA1, gB1),
-        "J2": (gA2, gB2),
-        "J3": (gA3, gB3),
-    }, label=label)
+    phases_dict = {}
+    for i, tl_id in enumerate(TL_IDS):
+        gA = genes[i * 2]
+        gB = genes[i * 2 + 1]
+        phases_dict[tl_id] = (gA, gB)
+
+    set_greens(phases_dict, label=label)
 
     total_wait    = 0.0
     total_speed   = 0.0
@@ -125,9 +140,7 @@ def evaluate(
 
     avg_speed = (total_speed / speed_samples) if speed_samples else 0.0
     return {
-        "gA1": gA1, "gB1": gB1,
-        "gA2": gA2, "gB2": gB2,
-        "gA3": gA3, "gB3": gB3,
+        "genes":         list(genes),
         "steps_used":    step,
         "arrived_total": arrived_total,
         "total_wait":    total_wait,
@@ -136,16 +149,15 @@ def evaluate(
 
 
 # ---------------------------------------------------------------
-# EVALUATE_WORKER  — writes result to worker_cache/
+# EVALUATE_WORKER  — called by parallel pool
 # ---------------------------------------------------------------
 def evaluate_worker(args: tuple) -> dict:
-    sol_idx, gA1, gB1, gA2, gB2, gA3, gB3, _ = args
-    port = port_for_index(sol_idx % 12)
+    sol_idx, genes, _ = args
+    port = port_for_index(sol_idx % 20)
 
-    result = evaluate(gA1, gB1, gA2, gB2, gA3, gB3,
-                      gui=False, verbose=False, seed=None, port=port)
+    result = evaluate(genes, gui=False, verbose=False, seed=None, port=port)
 
-    # Write to file-based cache so main process can read it
+    # Write to file-based cache
     CACHE_DIR.mkdir(exist_ok=True)
     cache_file = CACHE_DIR / f"{sol_idx}.json"
     with open(cache_file, "w") as f:
