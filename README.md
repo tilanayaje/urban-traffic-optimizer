@@ -136,7 +136,7 @@ Where `α = 0.001` (wait time penalty weight). Fitness rewards throughput while 
 
 | Network | Intersections | Genes | Sequential (20 gens, est.) | Parallel (12 cores, 20 gens) |
 |---|---|---|---|---|
-| Corridor | 3 | 6 | ~2,000 min (est.) | ~400 min (measured) |
+| Corridor | 3 | 6 | ~2,000 min (est.) | ~160 min (measured) |
 | Grid | 20 | 40 | ~2,400 min (est.) | ~300 min (measured) |
 | City-Scale (theoretical) | 113 | 226 | — | — |
 
@@ -185,7 +185,7 @@ Deviation of the final GA solution from the 42s default. Green = GA increased gr
 ---
 <img width="755" height="513" alt="image" src="https://github.com/user-attachments/assets/25005768-7f0c-43e5-bc78-cc8b99af29c8" />
 
-Parallel Processing: 12 SUMO simulations running at once.
+Parallel Processing: 12 SUMO simulations running simultaneously during a single GA generation evaluation.
 
 ---
 
