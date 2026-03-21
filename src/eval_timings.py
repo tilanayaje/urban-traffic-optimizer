@@ -1,189 +1,166 @@
-import os, sys
+import os, sys, json
 from pathlib import Path
 
-# --- SUMO tools setup ---
+# --- Paths ---
+ROOT      = Path(__file__).resolve().parent.parent
+SUMO_DIR  = ROOT / "sumo_data" / "grid20"
+SUMOCFG   = SUMO_DIR / "Traci.sumocfg"
+CACHE_DIR = ROOT / "worker_cache"
+
+if not SUMOCFG.exists():
+    raise FileNotFoundError(f"Missing SUMO config: {SUMOCFG}")
+
 if "SUMO_HOME" in os.environ:
-    tools = os.path.join(os.environ["SUMO_HOME"], "tools")
-    sys.path.append(tools)
+    sys.path.append(str(Path(os.environ["SUMO_HOME"]) / "tools"))
 else:
     sys.exit("Please declare environment variable 'SUMO_HOME'")
 
 import traci
 
+# ---------------------------------------------------------------
+# NETWORK CONFIG
+# 4x5 grid: cols 0-3, rows 0-4
+# ---------------------------------------------------------------
+COLS = 4
+ROWS = 5
+TL_IDS = [f"J_{col}_{row}" for col in range(COLS) for row in range(ROWS)]  # 20 TLs
+N_INTERSECTIONS = len(TL_IDS)  # 20
+YELLOW    = 3
+MAX_STEPS = 8000   # larger network needs more steps
 
-# --- Paths (absolute, so cwd never matters) ---
-ROOT = Path(__file__).resolve().parent.parent  # repo root
+# ---------------------------------------------------------------
+# PORT ALLOCATOR
+# ---------------------------------------------------------------
+BASE_PORT = 8813
 
-# default to generated map (everyone has the same one)
-MAP = os.environ.get("SUMO_MAP", "generated")
-SUMO_DIR = ROOT / "sumo_data" / MAP
-SUMOCFG = ROOT / "sumo_data" / MAP / "Traci.sumocfg"
-
-# fail fast if missing (helps teammates)
-if not SUMOCFG.exists():
-    raise FileNotFoundError(f"Missing SUMO config: {SUMOCFG}")
-
-TL_ID = "J11"      # from your Traci.net.xml
-YELLOW = 3         # keep fixed
-MAX_STEPS = 4000   # fixed horizon so runs are comparable
+def port_for_index(idx: int) -> int:
+    return BASE_PORT + idx
 
 
-
-def start_sumo(gui=False):
-    sumo_binary = "sumo-gui" if gui else "sumo"
+# ---------------------------------------------------------------
+# SUMO HELPERS
+# ---------------------------------------------------------------
+def start_sumo(gui: bool = False, seed: int = None, port: int = None):
+    binary = "sumo-gui" if gui else "sumo"
     cmd = [
-        sumo_binary,
+        binary,
         "-c", str(SUMOCFG),
-        "--step-length", "0.05",
-        "--delay", "0",
+        "--step-length",        "0.05",
+        "--delay",              "0",
         "--lateral-resolution", "0.1",
-        "--start"
+        "--start",
     ]
-    traci.start(cmd)
+    if seed is not None:
+        cmd += ["--seed", str(seed)]
+    if port is not None:
+        traci.start(cmd, port=port, label=str(port))
+    else:
+        traci.start(cmd)
 
 
-def set_J11_greens(gA: int, gB: int):
+def set_greens(phases_dict: dict, label: str = None):
     """
-    J11 has 4 phases in the net:
-      0: greenA
-      1: yellow
-      2: greenB
-      3: yellow
-    We only change green durations.
+    phases_dict = { "J_0_0": (gA, gB), "J_0_1": (gA, gB), ... }
+    4-phase layout: greenA, yellow, greenB, yellow
     """
-    gA = max(5, int(gA))
-    gB = max(5, int(gB))
-
-    prog = traci.trafficlight.getAllProgramLogics(TL_ID)[0]
-    phases = prog.phases
-
-    if len(phases) != 4:
-        raise RuntimeError(f"Expected 4 phases for {TL_ID}, found {len(phases)}")
-
-    phases[0].duration = gA
-    phases[1].duration = YELLOW
-    phases[2].duration = gB
-    phases[3].duration = YELLOW
-
-    traci.trafficlight.setProgramLogic(TL_ID, prog)
+    conn = traci.getConnection(label) if label else traci
+    for tl_id, (gA, gB) in phases_dict.items():
+        gA = max(5, int(gA))
+        gB = max(5, int(gB))
+        prog   = conn.trafficlight.getAllProgramLogics(tl_id)[0]
+        phases = prog.phases
+        if len(phases) != 4:
+            raise RuntimeError(f"Expected 4 phases for {tl_id}, got {len(phases)}")
+        phases[0].duration = gA
+        phases[1].duration = YELLOW
+        phases[2].duration = gB
+        phases[3].duration = YELLOW
+        conn.trafficlight.setProgramLogic(tl_id, prog)
 
 
-def fitness(metrics, alpha=0.01):
+# ---------------------------------------------------------------
+# FITNESS HELPER
+# ---------------------------------------------------------------
+def fitness(metrics: dict, alpha: float = 0.01) -> float:
     return metrics["arrived_total"] - alpha * metrics["total_wait"]
 
 
-def evaluate(gA: int, gB: int, gui=False, verbose=False):
+# ---------------------------------------------------------------
+# EVALUATE
+# ---------------------------------------------------------------
+def evaluate(
+    genes:   list,          # 40 values: [gA0, gB0, gA1, gB1, ..., gA19, gB19]
+    gui:     bool = False,
+    verbose: bool = False,
+    seed:    int  = None,
+    port:    int  = None,
+) -> dict:
     """
-    Run one simulation with a fixed timing plan and return metrics.
-    Fitness later can be something like: arrived - alpha * total_wait
+    genes: flat list of 40 ints — pairs of (gA, gB) for each of the 20 intersections
+    in the same order as TL_IDS.
     """
-    start_sumo(gui=gui)
-    set_J11_greens(gA, gB)
+    assert len(genes) == N_INTERSECTIONS * 2, \
+        f"Expected {N_INTERSECTIONS*2} genes, got {len(genes)}"
 
-    total_wait = 0.0
-    total_speed = 0.0
+    label = str(port) if port is not None else None
+    start_sumo(gui=gui, seed=seed, port=port)
+    conn = traci.getConnection(label) if label else traci
+
+    phases_dict = {}
+    for i, tl_id in enumerate(TL_IDS):
+        gA = genes[i * 2]
+        gB = genes[i * 2 + 1]
+        phases_dict[tl_id] = (gA, gB)
+
+    set_greens(phases_dict, label=label)
+
+    total_wait    = 0.0
+    total_speed   = 0.0
     speed_samples = 0
     arrived_total = 0
-
-    STEP_LEN = 0.05
+    STEP_LEN   = 0.05
     STOP_SPEED = 0.1
 
     for step in range(1, MAX_STEPS + 1):
-        traci.simulationStep()
-
-        veh_ids = traci.vehicle.getIDList()
+        conn.simulationStep()
+        veh_ids = conn.vehicle.getIDList()
         for vid in veh_ids:
-            spd = traci.vehicle.getSpeed(vid)
+            spd = conn.vehicle.getSpeed(vid)
             if spd < STOP_SPEED:
                 total_wait += STEP_LEN
-            total_speed += spd
+            total_speed   += spd
             speed_samples += 1
-
-        arrived_total += traci.simulation.getArrivedNumber()
-
-        # gate heartbeat print with verbose
+        arrived_total += conn.simulation.getArrivedNumber()
         if verbose and step % 500 == 0:
-            print(f"[{gA},{gB}] step {step} vehicles {len(veh_ids)} arrived_total {arrived_total}")
-
-        if traci.simulation.getMinExpectedNumber() <= 0:
+            print(f"step {step}  vehicles {len(veh_ids)}  arrived {arrived_total}")
+        if conn.simulation.getMinExpectedNumber() <= 0:
             break
 
-    traci.close()
+    conn.close()
 
     avg_speed = (total_speed / speed_samples) if speed_samples else 0.0
     return {
-        "gA": gA,
-        "gB": gB,
-        "steps_used": step,
+        "genes":         list(genes),
+        "steps_used":    step,
         "arrived_total": arrived_total,
-        "total_wait": total_wait,
-        "avg_speed": avg_speed,
+        "total_wait":    total_wait,
+        "avg_speed":     avg_speed,
     }
 
-import random
 
-GREEN_MIN = 10
-GREEN_MAX = 80
+# ---------------------------------------------------------------
+# EVALUATE_WORKER  — called by parallel pool
+# ---------------------------------------------------------------
+def evaluate_worker(args: tuple) -> dict:
+    sol_idx, genes, _ = args
+    port = port_for_index(sol_idx % 20)
 
-POP_SIZE = 12
-GENERATIONS = 10
-ELITE_K = 4
-MUT_STD = 6  # seconds
+    result = evaluate(genes, gui=False, verbose=False, seed=None, port=port)
 
-def clamp(x):
-    return max(GREEN_MIN, min(GREEN_MAX, int(x)))
+    # Write to file-based cache
+    CACHE_DIR.mkdir(exist_ok=True)
+    cache_file = CACHE_DIR / f"{sol_idx}.json"
+    with open(cache_file, "w") as f:
+        json.dump(result, f)
 
-def mutate(ind):
-    gA, gB = ind
-    if random.random() < 0.8:
-        gA = clamp(gA + random.gauss(0, MUT_STD))
-    if random.random() < 0.8:
-        gB = clamp(gB + random.gauss(0, MUT_STD))
-    return [gA, gB]
-
-def crossover(a, b):
-    # simple: swap one gene
-    if random.random() < 0.5:
-        return [a[0], b[1]]
-    else:
-        return [b[0], a[1]]
-
-if __name__ == "__main__":
-    # 1) initial population
-    pop = [[random.randint(GREEN_MIN, GREEN_MAX), random.randint(GREEN_MIN, GREEN_MAX)]
-           for _ in range(POP_SIZE)]
-
-    best_ind = None
-    best_fit = -1e18
-
-    for gen in range(GENERATIONS):
-        scored = []
-        for ind in pop:
-            m = evaluate(ind[0], ind[1], gui=False, verbose=False)
-            f = fitness(m, alpha=0.01)
-            scored.append((f, ind, m))
-
-        scored.sort(reverse=True, key=lambda x: x[0])
-
-        gen_best_f, gen_best_ind, gen_best_m = scored[0]
-        if gen_best_f > best_fit:
-            best_fit = gen_best_f
-            best_ind = gen_best_ind
-
-        print(f"\nGEN {gen} BEST: {gen_best_ind} fitness={gen_best_f:.2f} "
-              f"(arrived={gen_best_m['arrived_total']}, wait={gen_best_m['total_wait']:.1f}, avg_speed={gen_best_m['avg_speed']:.2f})")
-
-        # 2) select elites
-        elites = [ind for (_, ind, _) in scored[:ELITE_K]]
-
-        # 3) make next generation
-        new_pop = elites.copy()
-        while len(new_pop) < POP_SIZE:
-            p1, p2 = random.sample(elites, 2)
-            child = crossover(p1, p2)
-            child = mutate(child)
-            new_pop.append(child)
-
-        pop = new_pop
-
-    print("\nOVERALL BEST:", best_ind, "fitness=", best_fit)
+    return result

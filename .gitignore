@@ -235,3 +235,5 @@ sumo_data/generated/
 
 # Temporary notebooks or checkpoints
 notebooks/.ipynb_checkpoints/
+compare_backup/
+compare_new/
