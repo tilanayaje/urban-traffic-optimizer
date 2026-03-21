@@ -183,7 +183,7 @@ The baseline condition uses SUMO's default fixed-timing plan (42s/42s on every i
 Deviation of the final GA solution from the 42s default. Green = GA increased green time above baseline. Red = GA reduced green time below baseline.
 
 ---
-<img width="755" height="513" alt="image" src="https://github.com/user-attachments/assets/25005768-7f0c-43e5-bc78-cc8b99af29c8" />
+<img width="699" height="457" alt="image" src="https://github.com/user-attachments/assets/08b7da15-80a2-4c73-87ed-9b8e70d4ec74" />
 
 Parallel Processing: 12 SUMO simulations running simultaneously during a single GA generation evaluation.
 
