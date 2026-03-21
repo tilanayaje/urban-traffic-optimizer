@@ -99,7 +99,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ── Helpers ───────────────────────────────────────────────────────────
+# Helpers
 def load_ga():
     if os.path.exists("ga_history.csv"):
         try:
@@ -154,7 +154,7 @@ def add_glow(fig, x, y, rgb, widths=((28,0.04),(18,0.08),(10,0.18),(5,0.4))):
     ))
 
 
-# ── Header ────────────────────────────────────────────────────────────
+# Header 
 st.markdown("""
 <div style="margin-bottom:0.25rem;">
   <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;
@@ -343,20 +343,20 @@ with tab2:
 
         with col1:
             fig_box = px.box(cdf, x="condition", y="avg_wait", color="condition",
-                             title="Wait Time Distribution (10 runs each)",
+                             title="Wait Time Distribution (20 runs each)",
                              labels={"avg_wait":"Avg Wait (s)","condition":""},
                              color_discrete_map={"Baseline":"#ff6b6b","GA_Optimized":"#00ff99"})
-            fig_box.update_layout(**base_layout("Wait Time Distribution (10 runs each)"),
+            fig_box.update_layout(**base_layout("Wait Time Distribution (20 runs each)"),
                                   showlegend=False)
             fig_box.update_traces(marker=dict(line=dict(width=1.5)), line=dict(width=2))
             st.plotly_chart(fig_box, use_container_width=True)
 
         with col2:
             fig_thru = px.box(cdf, x="condition", y="throughput", color="condition",
-                              title="Throughput Distribution (10 runs each)",
+                              title="Throughput Distribution (20 runs each)",
                               labels={"throughput":"Cars Arrived","condition":""},
                               color_discrete_map={"Baseline":"#ff6b6b","GA_Optimized":"#00ff99"})
-            fig_thru.update_layout(**base_layout("Throughput Distribution (10 runs each)"),
+            fig_thru.update_layout(**base_layout("Throughput Distribution (20 runs each)"),
                                    showlegend=False)
             fig_thru.update_traces(marker=dict(line=dict(width=1.5)), line=dict(width=2))
             st.plotly_chart(fig_thru, use_container_width=True)
@@ -415,8 +415,7 @@ with tab3:
         "Parallel runtimes are directly measured. Sequential runtimes are calculated from observed per-simulation times (T × P × G).</p>",
         unsafe_allow_html=True)
 
-    # Verified: 3-intersection parallel ~20min/gen measured, T~8min/sim
-    # Sequential estimate: 12sims × 8min × 20gens = 1920min ≈ 2000min
+    # Verified: 3-intersection parallel ~160min total (20 gens × ~8min/gen measured) gens = 1920min ≈ 2000min
     # 20-intersection parallel ~300min total measured, T~10-15min/sim
     # Sequential estimate: 12sims × 10min × 20gens = 2400min
     scale_df = pd.DataFrame({
@@ -424,7 +423,7 @@ with tab3:
         "Intersections":         [3, 20],
         "Genes":                 [6, 40],
         "Sequential (20 gens)":  [2000, 2400],
-        "Parallel (20 gens)":    [400, 300],
+        "Parallel (20 gens)":    [160, 300],
     })
     speedups = [s/p for s,p in zip(scale_df["Sequential (20 gens)"], scale_df["Parallel (20 gens)"])]
 
@@ -474,7 +473,7 @@ with tab3:
         "Search Space":                ["70⁶ ≈ 1.18×10¹¹", "70⁴⁰ (intractable)", "70²²⁶ (city-scale)"],
         "T per sim":                   ["~8 min (measured)", "~10–15 min (measured)", "~hours (projected)"],
         "Sequential 20 gens":          ["~2,000 min (est.)", "~2,400 min (est.)", "Not feasible"],
-        "Parallel 12 cores 20 gens":   ["~400 min (measured)", "~300 min (measured)", "~days (12 cores)"],
+        "Parallel 12 cores 20 gens":   ["~160 min (measured)", "~300 min (measured)", "~days (12 cores)"],
     })
     st.dataframe(sd, use_container_width=True, hide_index=True)
 
@@ -510,8 +509,9 @@ with tab3:
     T is the dominant term and grows with network size: more intersections produce more vehicles requiring more simulation steps,
     and TraCI must process vehicle state at every step.
     At 20 intersections with 1,000+ simultaneous vehicles, T ≈ 10–15 minutes.
-    Sequential evaluation requires P × T minutes per generation — with P=12 and T=10min, that is 120 minutes per generation,
-    or approximately 2,400 minutes (40 hours) for a full 20-generation run. This is the fundamental barrier to scaling.
+    Sequential evaluation requires P × T minutes per generation — with P=12 and T=10min (conservative estimate),
+    that is 120 minutes per generation, or approximately 2,400 minutes (40 hours) for a full 20-generation run.
+    This is the fundamental barrier to scaling.
     </p>
 
     <p style="margin-bottom:1.2rem;">
@@ -521,8 +521,9 @@ with tab3:
     All 12 simulations run concurrently — the generation completes in time T, not P×T.
     This reduces total complexity to <strong>O(G × T)</strong>, a factor-P reduction.
     With P=12 workers matching population size P=12, the theoretical maximum speedup is 12×.
-    Observed speedup is approximately 5–8× due to process spawning overhead, file I/O latency from the worker cache,
-    and non-uniform simulation completion times — faster workers must wait for the slowest member of each generation.
+    Observed speedup is approximately 8–12× (8× at 20 intersections, 12.5× at 3 intersections) due to process spawning overhead,
+    file I/O latency from the worker cache, and non-uniform simulation completion times —
+    faster workers must wait for the slowest member of each generation.
     </p>
 
     <p style="margin-bottom:1.2rem;">
@@ -662,7 +663,7 @@ with tab4:
                 f'style="width:100%;background:#0a0a0f;border-radius:12px;">'
             ]
 
-            # ── Legend bar ────────────────────────────────────────
+            # Legend bar 
             leg_x = PAD
             leg_y = PAD + 20
             leg_h = ROWS * CELL - 40
@@ -755,7 +756,7 @@ with tab4:
                     road = ROAD // 2
 
                     gid = f"g_{col}_{row}"
-                    # Subtle radial glow over entire intersection — looks like ambient light
+                    # Subtle radial glow over entire intersection 
                     svg_parts.append(
                         f'<defs><radialGradient id="{gid}" cx="50%" cy="50%" r="50%">'
                         f'<stop offset="0%" stop-color="#ffffff" stop-opacity="0.09"/>'
@@ -819,7 +820,7 @@ with tab4:
             svg_parts.append('</svg>')
             return ''.join(svg_parts)
 
-        # ── Section 1: Phase durations ─────────────────────────────
+        # Section 1: Phase durations
         st.markdown("<h3 style='color:#f0f4ff;margin-bottom:0.3rem;'>Green Phase Durations — Final GA Solution (Gen 20)</h3>",
                     unsafe_allow_html=True)
         st.markdown(
@@ -838,7 +839,7 @@ with tab4:
 
         st.divider()
 
-        # ── Section 2: Deviation from baseline ────────────────────
+        # Section 2: Deviation from baseline 
         st.markdown("<h3 style='color:#f0f4ff;margin-bottom:0.3rem;'>Deviation from Default Timing (42s baseline)</h3>",
                     unsafe_allow_html=True)
         st.markdown(
