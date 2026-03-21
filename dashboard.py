@@ -106,6 +106,7 @@ def load_ga():
             return pd.read_csv("ga_history.csv")
         except Exception:
             return pd.DataFrame()
+
     return pd.DataFrame()
 
 def load_comparison():

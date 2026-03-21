@@ -1,6 +1,0 @@
-<configuration>
-    <input>
-        <net-file value="Traci.net.xml"/>
-        <route-files value="Traci.rou.xml"/>
-    </input>
-</configuration>

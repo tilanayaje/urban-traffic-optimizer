@@ -220,6 +220,7 @@ simulations/
 
 # Data files
 data/
+sumo_data/generated/
 *.csv
 *.json
 *.parquet

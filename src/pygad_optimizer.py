@@ -23,6 +23,15 @@ CACHE_DIR = Path(__file__).resolve().parent.parent / "worker_cache"
 # ============================================================
 gene_space = [{"low": GREEN_MIN, "high": GREEN_MAX}] * N_GENES
 
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+MAP = os.environ.get("SUMO_MAP", "generated")
+CSV_PATH = ROOT / "sumo_data" / MAP / "ga_history.csv"
+
+# deletes existing csv for clarity
+if CSV_PATH.exists():
+    CSV_PATH.unlink()
 
 # ============================================================
 # FITNESS FUNCTION (top-level for pickling on Windows)
