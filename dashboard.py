@@ -176,23 +176,35 @@ with tab1:
     df = load_ga()
     n_intersections, gene_cols_a = detect_network(df)
 
-    top_left, top_right = st.columns([3, 1])
-    with top_left:
-        if n_intersections:
-            badge_class = "badge-20" if n_intersections == 20 else "badge-3"
-            st.markdown(
-                f'<span class="network-badge {badge_class}">'
-                f'🔲 {n_intersections}-Intersection Network &nbsp;·&nbsp; {n_intersections*2} Genes'
-                f'</span>', unsafe_allow_html=True)
-    with top_right:
-        if not df.empty:
-            mtime = os.path.getmtime("ga_history.csv")
-            elapsed = datetime.now() - datetime.fromtimestamp(mtime)
-            mins, secs = int(elapsed.total_seconds()//60), int(elapsed.total_seconds()%60)
-            st.markdown(
-                f'<div class="section-label">Last generation logged</div>'
-                f'<div class="timer-display">{mins:02d}:{secs:02d} ago</div>',
-                unsafe_allow_html=True)
+    # Define the live-updating fragment
+    @st.fragment(run_every="1s")
+    def render_header_section(df, n_intersections):
+        top_left, top_right = st.columns([3, 1])
+        
+        with top_left:
+            if n_intersections:
+                badge_class = "badge-20" if n_intersections == 20 else "badge-3"
+                st.markdown(
+                    f'<span class="network-badge {badge_class}">'
+                    f'🔲 {n_intersections}-Intersection Network &nbsp;·&nbsp; {n_intersections*2} Genes'
+                    f'</span>', unsafe_allow_html=True)
+        
+        with top_right:
+            if not df.empty and os.path.exists("ga_history.csv"):
+                mtime = os.path.getmtime("ga_history.csv")
+                # Calculate live elapsed time
+                elapsed = datetime.now() - datetime.fromtimestamp(mtime)
+                total_seconds = int(elapsed.total_seconds())
+                mins, secs = divmod(total_seconds, 60)
+                # Dynamic styling: pulse or change color if update was < 5s ago
+                is_recent = "color: #00ff00; font-weight: bold;" if total_seconds < 5 else ""
+                st.markdown(
+                    f'<div class="section-label">Last generation logged</div>'
+                    f'<div class="timer-display" style="{is_recent}">{mins:02d}:{secs:02d} ago</div>',
+                    unsafe_allow_html=True)
+
+    # 3. Execute the fragment
+    render_header_section(df, n_intersections)
 
     st.divider()
 
