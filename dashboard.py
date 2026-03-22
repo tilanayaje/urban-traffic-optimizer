@@ -26,14 +26,23 @@ st.markdown("""
     .block-container { padding: 1.5rem 2rem; max-width: 1600px; }
     h1, h2, h3 { font-family: 'Syne', sans-serif; font-weight: 800; }
 
+    /* Glassmorphism */
     .stMetric {
-        background: linear-gradient(135deg, #0f0f1a 0%, #151528 100%);
-        border: 1px solid #1e1e3f;
-        border-radius: 12px;
+        background: rgba(15, 15, 30, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(129, 140, 248, 0.15);
+        border-radius: 16px;
         padding: 1rem 1.2rem;
-        transition: border-color 0.3s;
+        transition: border-color 0.4s, box-shadow 0.4s, transform 0.2s;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+        animation: cardEntrance 0.5s ease both;
     }
-    .stMetric:hover { border-color: #4f46e5; }
+    .stMetric:hover {
+        border-color: rgba(129, 140, 248, 0.5);
+        box-shadow: 0 4px 32px rgba(129,140,248,0.15), inset 0 1px 0 rgba(255,255,255,0.08);
+        transform: translateY(-1px);
+    }
     .stMetric label {
         font-family: 'JetBrains Mono', monospace !important;
         font-size: 0.7rem !important;
@@ -47,6 +56,19 @@ st.markdown("""
         font-weight: 700 !important;
         color: #f0f4ff !important;
     }
+
+    /* Staggered card entrance */
+    @keyframes cardEntrance {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .stMetric:nth-child(1) { animation-delay: 0.00s; }
+    .stMetric:nth-child(2) { animation-delay: 0.08s; }
+    .stMetric:nth-child(3) { animation-delay: 0.16s; }
+    .stMetric:nth-child(4) { animation-delay: 0.24s; }
+    .stMetric:nth-child(5) { animation-delay: 0.32s; }
+
+    /* Tab indicator slide animation */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0;
         background: #0f0f1a;
@@ -62,13 +84,33 @@ st.markdown("""
         border-bottom: 2px solid transparent;
         text-transform: uppercase;
         letter-spacing: 0.1em;
+        transition: color 0.25s ease, border-color 0.25s ease;
     }
     .stTabs [aria-selected="true"] {
         color: #818cf8 !important;
         border-bottom: 2px solid #818cf8 !important;
         background: transparent !important;
     }
-    hr { border-color: #1e1e3f; }
+
+    /* Smooth scroll for anchor links */
+    html { scroll-behavior: smooth; }
+
+    /* Scanlines — injected as real div below */
+
+    /* Glowing section dividers */
+    hr {
+        border: none !important;
+        height: 1px !important;
+        background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(129,140,248,0.15) 20%,
+            rgba(129,140,248,0.4) 50%,
+            rgba(129,140,248,0.15) 80%,
+            transparent 100%
+        ) !important;
+        box-shadow: 0 0 8px rgba(129,140,248,0.2);
+        margin: 1rem 0;
+    }
     .network-badge {
         display: inline-block;
         font-family: 'JetBrains Mono', monospace;
@@ -154,7 +196,10 @@ def add_glow(fig, x, y, rgb, widths=((28,0.04),(18,0.08),(10,0.18),(5,0.4))):
     ))
 
 
-# Header 
+# Anchor at absolute top — placed before everything so clicking scrolls to include the title
+st.markdown('<div id="top"></div>', unsafe_allow_html=True)
+
+# Header
 st.markdown("""
 <div style="margin-bottom:0.25rem;">
   <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;
@@ -166,6 +211,33 @@ st.markdown("""
 st.markdown("<h1 style='font-size:2rem;margin:0 0 0.1rem 0;color:#f0f4ff;'>Real-Time Traffic Flow Optimization</h1>",
             unsafe_allow_html=True)
 
+# Scanlines overlay
+st.markdown("""
+<div style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;
+            background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);">
+</div>
+""", unsafe_allow_html=True)
+
+
+# Scroll to top — anchor link since JS cannot escape Streamlit's iframe sandbox
+st.markdown("""
+<a href="#top"
+  style="position:fixed;bottom:2rem;right:2rem;
+         width:110px;height:110px;border-radius:50%;
+         background:rgba(15,15,30,0.85);
+         border:1px solid rgba(129,140,248,0.35);
+         color:#818cf8;font-size:2.5rem;
+         z-index:10000;
+         backdrop-filter:blur(8px);
+         box-shadow:0 0 16px rgba(129,140,248,0.2);
+         display:flex;align-items:center;justify-content:center;
+         text-decoration:none;
+         transition:border-color 0.3s,box-shadow 0.3s,transform 0.2s;"
+  onmouseover="this.style.borderColor='rgba(129,140,248,0.7)';this.style.boxShadow='0 0 24px rgba(129,140,248,0.4)';this.style.transform='translateY(-2px)'"
+  onmouseout="this.style.borderColor='rgba(129,140,248,0.35)';this.style.boxShadow='0 0 16px rgba(129,140,248,0.2)';this.style.transform='translateY(0)'"
+  title="Back to top">↑</a>
+""", unsafe_allow_html=True)
+
 tab1, tab2, tab3, tab4 = st.tabs(["🧬  GA PROGRESS", "📊  BASELINE vs GA", "⚡  SCALABILITY", "🗺️  HEATMAPS"])
 
 
@@ -176,11 +248,11 @@ with tab1:
     df = load_ga()
     n_intersections, gene_cols_a = detect_network(df)
 
-    # Define the live-updating fragment
+    # YOUR live header fragment — preserved exactly
     @st.fragment(run_every="1s")
     def render_header_section(df, n_intersections):
         top_left, top_right = st.columns([3, 1])
-        
+
         with top_left:
             if n_intersections:
                 badge_class = "badge-20" if n_intersections == 20 else "badge-3"
@@ -188,68 +260,143 @@ with tab1:
                     f'<span class="network-badge {badge_class}">'
                     f'🔲 {n_intersections}-Intersection Network &nbsp;·&nbsp; {n_intersections*2} Genes'
                     f'</span>', unsafe_allow_html=True)
-        
+
         with top_right:
             if not df.empty and os.path.exists("ga_history.csv"):
                 mtime = os.path.getmtime("ga_history.csv")
-                # Calculate live elapsed time
                 elapsed = datetime.now() - datetime.fromtimestamp(mtime)
                 total_seconds = int(elapsed.total_seconds())
                 mins, secs = divmod(total_seconds, 60)
-                # Dynamic styling: pulse or change color if update was < 5s ago
                 is_recent = "color: #00ff00; font-weight: bold;" if total_seconds < 5 else ""
                 st.markdown(
                     f'<div class="section-label">Last generation logged</div>'
                     f'<div class="timer-display" style="{is_recent}">{mins:02d}:{secs:02d} ago</div>',
                     unsafe_allow_html=True)
 
-    # 3. Execute the fragment
     render_header_section(df, n_intersections)
 
     st.divider()
 
     if not df.empty:
         latest, first = df.iloc[-1], df.iloc[0]
+        max_gens     = 20
+        current_gen  = int(latest['generation'])
+        wait_val     = latest['avg_waiting_time']
+        thru_val     = int(latest['throughput'])
+        fit_val      = latest['fitness']
+        impr_val     = abs((wait_val - first['avg_waiting_time']) / first['avg_waiting_time'] * 100)
+        wait_delta   = wait_val - first['avg_waiting_time']
+        thru_delta   = thru_val - int(first['throughput'])
 
-        k1,k2,k3,k4,k5 = st.columns(5)
-        k1.metric("Generation", f"{int(latest['generation'])} / {len(df)}")
-        k2.metric("Avg Wait Time", f"{latest['avg_waiting_time']:.1f}s",
-                  delta=f"{latest['avg_waiting_time']-first['avg_waiting_time']:.1f}s",
-                  delta_color="inverse")
-        k3.metric("Throughput", f"{int(latest['throughput'])} cars",
-                  delta=f"+{int(latest['throughput']-first['throughput'])}")
-        k4.metric("Best Fitness", f"{latest['fitness']:.2f}")
-        k5.metric("Improvement",
-                  f"{abs((latest['avg_waiting_time']-first['avg_waiting_time'])/first['avg_waiting_time']*100):.1f}%",
-                  delta="wait time reduction", delta_color="inverse")
+        # UPGRADE 2: Animated KPI counters
+        st.markdown(f"""
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:1rem;">
+          <div class="stMetric" style="animation-delay:0.00s;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Generation</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:#f0f4ff;">{current_gen} / {max_gens}</div>
+          </div>
+          <div class="stMetric" style="animation-delay:0.08s;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Avg Wait Time</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:#f0f4ff;"><span id="cnt-wait">{wait_val:.1f}</span>s</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:#ff6b6b;margin-top:0.2rem;">↓ {abs(wait_delta):.1f}s</div>
+          </div>
+          <div class="stMetric" style="animation-delay:0.16s;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Throughput</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:#f0f4ff;"><span id="cnt-thru">{thru_val}</span> cars</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:#00ff99;margin-top:0.2rem;">↑ +{thru_delta}</div>
+          </div>
+          <div class="stMetric" style="animation-delay:0.24s;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Best Fitness</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:#f0f4ff;"><span id="cnt-fit">{fit_val:.2f}</span></div>
+          </div>
+          <div class="stMetric" style="animation-delay:0.32s;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Improvement</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:#f0f4ff;"><span id="cnt-impr">{impr_val:.1f}</span>%</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:#ff6b6b;margin-top:0.2rem;">wait time reduction</div>
+          </div>
+        </div>
+        <script>
+        function animateCount(id, target, decimals, duration) {{
+            const el = document.getElementById(id);
+            if (!el) return;
+            const startTime = performance.now();
+            function update(now) {{
+                const progress = Math.min((now - startTime) / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3);
+                el.textContent = (target * ease).toFixed(decimals);
+                if (progress < 1) requestAnimationFrame(update);
+            }}
+            requestAnimationFrame(update);
+        }}
+        animateCount('cnt-wait', {wait_val:.2f}, 1, 800);
+        animateCount('cnt-thru', {thru_val}, 0, 800);
+        animateCount('cnt-fit',  {fit_val:.4f}, 2, 800);
+        animateCount('cnt-impr', {impr_val:.2f}, 1, 800);
+        </script>
+        """, unsafe_allow_html=True)
+
+        # UPGRADE 3: Progress bar
+        pct       = current_gen / max_gens
+        bar_color = "#00ff99" if pct >= 1.0 else "#818cf8"
+        st.markdown(f"""
+        <div style="margin-bottom:1.2rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:#4b5563;text-transform:uppercase;letter-spacing:0.15em;">Evolution Progress</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:#6b7280;">{current_gen} / {max_gens} generations</span>
+          </div>
+          <div style="background:#111122;border-radius:999px;height:6px;overflow:hidden;border:1px solid #1e1e3f;">
+            <div style="width:{pct*100:.1f}%;height:100%;border-radius:999px;
+                        background:linear-gradient(90deg,#4f46e5,{bar_color});
+                        box-shadow:0 0 8px {bar_color}88;
+                        transition:width 0.6s ease;"></div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.divider()
 
-        col1, col2 = st.columns(2)
+        # UPGRADE 4+5: Auto-refresh charts + baseline dashed line
+        @st.fragment(run_every="10s")
+        def render_charts():
+            df_live = load_ga()
+            if df_live.empty:
+                return
+            col1, col2 = st.columns(2)
 
-        with col1:
-            fig_wait = px.line(df, x="generation", y="avg_waiting_time",
-                               title="Avg Wait Time per Generation", markers=True)
-            fig_wait.update_traces(
-                line_color="#ff6b6b", line_width=3,
-                marker=dict(size=8, color="#ff6b6b", line=dict(width=2, color=DARK_BG)))
-            fig_wait.update_layout(**base_layout("Avg Wait Time per Generation",
-                                                  xtitle="Generation", ytitle="Seconds"))
-            add_glow(fig_wait, df["generation"], df["avg_waiting_time"], "255,107,107")
-            st.plotly_chart(fig_wait, use_container_width=True)
+            with col1:
+                fig_wait = px.line(df_live, x="generation", y="avg_waiting_time",
+                                   title="Avg Wait Time per Generation", markers=True)
+                fig_wait.update_traces(
+                    line_color="#ff6b6b", line_width=3,
+                    marker=dict(size=8, color="#ff6b6b", line=dict(width=2, color=DARK_BG)))
+                fig_wait.update_layout(**base_layout("Avg Wait Time per Generation",
+                                                      xtitle="Generation", ytitle="Seconds"))
+                fig_wait.add_hline(
+                    y=85.34,
+                    line_dash="dash",
+                    line_color="rgba(255,180,50,0.6)",
+                    line_width=1.5,
+                    annotation_text="Baseline 85.34s",
+                    annotation_position="top right",
+                    annotation_font=dict(family=FONT_MONO, size=10, color="rgba(255,180,50,0.8)"),
+                )
+                add_glow(fig_wait, df_live["generation"], df_live["avg_waiting_time"], "255,107,107")
+                st.plotly_chart(fig_wait, use_container_width=True)
 
-        with col2:
-            fig_fit = px.line(df, x="generation", y="fitness",
-                              title="Fitness Score per Generation", markers=True)
-            fig_fit.update_traces(
-                line_color="#00ff99", line_width=3,
-                marker=dict(size=8, color="#00ff99", line=dict(width=2, color=DARK_BG)))
-            fig_fit.update_layout(**base_layout("Fitness Score per Generation",
-                                                 xtitle="Generation", ytitle="Fitness"))
-            add_glow(fig_fit, df["generation"], df["fitness"], "0,255,153")
-            st.plotly_chart(fig_fit, use_container_width=True)
+            with col2:
+                fig_fit = px.line(df_live, x="generation", y="fitness",
+                                  title="Fitness Score per Generation", markers=True)
+                fig_fit.update_traces(
+                    line_color="#00ff99", line_width=3,
+                    marker=dict(size=8, color="#00ff99", line=dict(width=2, color=DARK_BG)))
+                fig_fit.update_layout(**base_layout("Fitness Score per Generation",
+                                                     xtitle="Generation", ytitle="Fitness"))
+                add_glow(fig_fit, df_live["generation"], df_live["fitness"], "0,255,153")
+                st.plotly_chart(fig_fit, use_container_width=True)
 
-        # Gene evolution grid
+        render_charts()
+
+        # Gene evolution grid — YOUR version preserved exactly
         if gene_cols_a:
             st.markdown('<div class="section-label">Traffic Light Phase Evolution — All Intersections</div>',
                         unsafe_allow_html=True)
@@ -284,7 +431,7 @@ with tab1:
                         col.plotly_chart(fig, use_container_width=True)
 
         st.divider()
-        st.markdown("<h3 style='color:#f0f4ff;'>How to Read These Results</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color:#f0f4ff;'>How to Read These Charts</h3>", unsafe_allow_html=True)
         st.markdown("""
         <div style="font-family:'Syne',sans-serif;font-size:0.95rem;color:#cbd5e1;line-height:1.9;max-width:1100px;">
 
@@ -622,7 +769,6 @@ with tab4:
 
         def val_to_viridis(v, vmin=10, vmax=80):
             t = max(0.0, min(1.0, (v - vmin) / (vmax - vmin)))
-            # Viridis: dark purple → teal → green → yellow
             stops = [
                 (0.0,  ( 68,  1,  84)),
                 (0.25, ( 59,  82, 139)),
@@ -664,25 +810,18 @@ with tab4:
             return "rgb(0,104,55)"
 
         def luma(rgb_str):
-            # Returns black or white text depending on background brightness
             import re
             nums = list(map(int, re.findall(r'\d+', rgb_str)))
             l = 0.299*nums[0] + 0.587*nums[1] + 0.114*nums[2]
             return "#000000" if l > 140 else "#ffffff"
 
         def render_intersection_grid(mode="plasma_a"):
-            """
-            mode: 'plasma_a', 'plasma_b', 'delta_a', 'delta_b'
-            Renders a 4-col × 5-row grid of SVG intersection icons.
-            Each intersection shows a + cross with N/S and E/W arms colored
-            by their green duration, with values labelled on each arm.
-            """
-            CELL = 160   # cell size px
-            PAD  = 12    # padding around grid
-            ARM  = 44    # arm width
-            ROAD = 28    # road width inside arm
-            LEG_W = 36   # legend bar width
-            LEG_PAD = 8  # gap between legend and grid
+            CELL = 160
+            PAD  = 12
+            ARM  = 44
+            ROAD = 28
+            LEG_W = 36
+            LEG_PAD = 8
             grid_offset_x = LEG_W + LEG_PAD + PAD
             total_w = COLS * CELL + PAD * 2 + LEG_W + LEG_PAD
             total_h = ROWS * CELL + PAD * 2
@@ -695,35 +834,28 @@ with tab4:
                 f'style="width:100%;background:#0a0a0f;border-radius:12px;">'
             ]
 
-            # Legend bar 
             leg_x = PAD
             leg_y = PAD + 20
             leg_h = ROWS * CELL - 40
             steps = 40
-            step_h = leg_h / steps
 
-            # Build legend gradient id
             leg_gid = f"leg_{mode}"
             svg_parts.append(f'<defs><linearGradient id="{leg_gid}" x1="0" y1="0" x2="0" y2="1">')
             for i in range(steps + 1):
                 frac = i / steps
                 if is_delta:
-                    # delta: top=max positive (green), bottom=max negative (red)
                     delta_val = 38 * (1 - frac) + (-35) * frac
                     c = val_to_rdylgn(delta_val)
                 else:
-                    # viridis: top=max (yellow), bottom=min (purple)
                     v = 80 * (1 - frac) + 10 * frac
                     c = val_to_viridis(v)
                 svg_parts.append(f'<stop offset="{frac*100:.1f}%" stop-color="{c}"/>')
             svg_parts.append(f'</linearGradient></defs>')
 
-            # Draw bar
             svg_parts.append(
                 f'<rect x="{leg_x}" y="{leg_y}" width="{LEG_W-4}" height="{leg_h}" '
                 f'fill="url(#{leg_gid})" rx="3"/>')
 
-            # Tick labels
             if is_delta:
                 ticks = [(0.0, "+38s"), (0.5, "0s"), (1.0, "-32s")]
             else:
@@ -738,8 +870,6 @@ with tab4:
                     f'<text x="{leg_x + LEG_W + 2}" y="{ty + 4}" '
                     f'font-size="9" font-family="monospace" fill="#9ca3af">{label}</text>')
 
-            # Legend title (rotated)
-            mid_y = leg_y + leg_h / 2
             title_text = "Δ from 42s" if is_delta else "Green (s)"
             svg_parts.append(
                 f'<text x="{leg_x + (LEG_W-4)//2}" y="{leg_y - 6}" '
@@ -773,7 +903,7 @@ with tab4:
                         sign_b = "+" if d_b >= 0 else ""
                         label_ns = f"{sign_a}{d_a:.0f}s"
                         label_ew = f"{sign_b}{d_b:.0f}s"
-                    else:  # delta_b
+                    else:
                         d_a = val_a - BASELINE
                         d_b = val_b - BASELINE
                         color_ns = val_to_rdylgn(d_b)
@@ -788,7 +918,6 @@ with tab4:
                     road = ROAD // 2
 
                     gid = f"g_{col}_{row}"
-                    # Subtle radial glow over entire intersection 
                     svg_parts.append(
                         f'<defs><radialGradient id="{gid}" cx="50%" cy="50%" r="50%">'
                         f'<stop offset="0%" stop-color="#ffffff" stop-opacity="0.09"/>'
@@ -796,20 +925,15 @@ with tab4:
                         f'<stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>'
                         f'</radialGradient></defs>')
 
-                    # N arm
                     svg_parts.append(
                         f'<rect x="{cx-road}" y="{cy-half}" width="{ROAD}" height="{half-road}" fill="{color_ns}"/>')
-                    # S arm
                     svg_parts.append(
                         f'<rect x="{cx-road}" y="{cy+road}" width="{ROAD}" height="{half-road}" fill="{color_ns}"/>')
-                    # W arm
                     svg_parts.append(
                         f'<rect x="{cx-half}" y="{cy-road}" width="{half-road}" height="{ROAD}" fill="{color_ew_actual}"/>')
-                    # E arm
                     svg_parts.append(
                         f'<rect x="{cx+road}" y="{cy-road}" width="{half-road}" height="{ROAD}" fill="{color_ew_actual}"/>')
 
-                    # Centre — blend of both arm colors, no black box
                     svg_parts.append(
                         f'<rect x="{cx-road}" y="{cy-road}" width="{ROAD}" height="{ROAD}" '
                         f'fill="{color_ns}" opacity="0.5"/>')
@@ -817,32 +941,27 @@ with tab4:
                         f'<rect x="{cx-road}" y="{cy-road}" width="{ROAD}" height="{ROAD}" '
                         f'fill="{color_ew_actual}" opacity="0.5"/>')
 
-                    # Radial glow over the full cell
                     full_span = CELL - 6
                     svg_parts.append(
                         f'<rect x="{cx - full_span//2}" y="{cy - full_span//2}" '
                         f'width="{full_span}" height="{full_span}" '
                         f'fill="url(#{gid})" pointer-events="none"/>')
 
-                    # Centre dot
                     svg_parts.append(
                         f'<circle cx="{cx}" cy="{cy}" r="4" fill="#ffffff" opacity="0.75"/>')
 
-                    # N/S label (above centre) — white text with dark outline for readability on any color
                     svg_parts.append(
                         f'<text x="{cx}" y="{cy-road-6}" '
                         f'text-anchor="middle" font-size="9" font-family="monospace" '
                         f'stroke="#000000" stroke-width="2.5" paint-order="stroke" '
                         f'fill="#ffffff" font-weight="bold">{label_ns}</text>')
 
-                    # E/W label (right of centre)
                     svg_parts.append(
                         f'<text x="{cx+road+4}" y="{cy+4}" '
                         f'text-anchor="start" font-size="9" font-family="monospace" '
                         f'stroke="#000000" stroke-width="2.5" paint-order="stroke" '
                         f'fill="#ffffff" font-weight="bold">{label_ew}</text>')
 
-                    # Junction ID label (bottom of cell) — always white with dark outline
                     svg_parts.append(
                         f'<text x="{cx}" y="{cy+half-4}" '
                         f'text-anchor="middle" font-size="8" font-family="monospace" '
@@ -852,7 +971,6 @@ with tab4:
             svg_parts.append('</svg>')
             return ''.join(svg_parts)
 
-        # Section 1: Phase durations
         st.markdown("<h3 style='color:#f0f4ff;margin-bottom:0.3rem;'>Green Phase Durations — Final GA Solution (Gen 20)</h3>",
                     unsafe_allow_html=True)
         st.markdown(
@@ -871,7 +989,6 @@ with tab4:
 
         st.divider()
 
-        # Section 2: Deviation from baseline 
         st.markdown("<h3 style='color:#f0f4ff;margin-bottom:0.3rem;'>Deviation from Default Timing (42s baseline)</h3>",
                     unsafe_allow_html=True)
         st.markdown(
