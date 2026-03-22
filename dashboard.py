@@ -272,38 +272,45 @@ with tab1:
                         col.plotly_chart(fig, use_container_width=True)
 
         st.divider()
-        st.markdown("<h3 style='color:#f0f4ff;'>How to Read These Charts</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color:#f0f4ff;'>How to Read These Results</h3>", unsafe_allow_html=True)
         st.markdown("""
-        <div style="font-family:'Syne',sans-serif;font-size:0.88rem;color:#cbd5e1;line-height:1.9;max-width:1100px;">
+        <div style="font-family:'Syne',sans-serif;font-size:0.95rem;color:#cbd5e1;line-height:1.9;max-width:1100px;">
 
         <p style="margin-bottom:1.2rem;">
-        <span style="color:#00ff99;font-weight:700;">What the fitness and wait time curves show.</span>
-        Each data point represents the single best solution found across the entire population at that generation — not the average,
-        not the median. The GA uses elitism to carry the top 3 solutions forward unchanged each generation,
-        so the best fitness score can only stay the same or improve. This is why both curves are monotonic:
-        wait time never increases and fitness never decreases from one generation to the next.
-        A plateau means the population has converged locally — the best solution found so far is being preserved,
-        but crossover and mutation have not yet produced anything better.
-        A sudden drop in wait time (or jump in fitness) means a new combination emerged that outperforms everything seen before.
+        <span style="color:#00ff99;font-weight:700;font-size:1.05rem;letter-spacing:0.03em;">What the fitness and wait time curves show</span><br>
+                    
+        Each data point represents the single best solution found across the entire population at that generation, not the average or median.
+        The fitness score never decreases from one generation to the next, because the GA saves the top 3 solutions each generation (elitism).
+        Wait time can fluctuate because the fitness function values both throughput and wait time.
+        a solution with a higher average wait time can still achieve higher fitness if it moves more vehicles through the network.
         </p>
 
         <p style="margin-bottom:1.2rem;">
-        <span style="color:#00ff99;font-weight:700;">The improvement metric is relative to generation 1, not a fixed baseline.</span>
-        The "Improvement" KPI above compares the current best solution to the generation 1 best solution —
-        which was itself drawn from a random population, not from a controlled fixed-timing condition.
-        Generation 1 represents the best of 12 random timing plans, which typically performs similarly to SUMO's default 42s/42s timing
-        but is not identical to it. For the validated improvement against the actual fixed-timing baseline,
-        refer to the Baseline vs GA tab where both conditions are evaluated under identical controlled conditions across 20 independent runs.
+        <span style="color:#00ff99;font-weight:700;font-size:1.05rem;letter-spacing:0.03em;">The improvement metric is relative to generation 1, not a fixed baseline</span><br>
+                    
+        The Improvement KPI above compares the current best solution to the best randomized gen 1 solution.
+        Generation 1 represents the best of 12 random timing plans, which typically performs similarly to SUMO's default 42s/42s timing. 
+        
+        For a validated improvement on a fixed-timing baseline, refer to the Baseline vs GA tab 
         </p>
 
         <p style="margin-bottom:0;">
-        <span style="color:#00ff99;font-weight:700;">What the gene evolution charts show.</span>
-        Each small chart below tracks how the green phase duration for one intersection changed across generations.
-        A flat line means the GA committed to a value early and stopped exploring — that timing is "solved."
+        <span style="color:#00ff99;font-weight:700;font-size:1.05rem;letter-spacing:0.03em;">What the gene evolution charts show</span><br>
+
+        Each small chart tracks how the green phase duration for one intersection changed across generations.
+        Each intersection in the 4×5 grid has two lines:
+        <br><br>
+        &nbsp;&nbsp;— phase A (North-South)<br>
+        &nbsp;&nbsp;— phase B (East-West)
+        <br><br>
+        A flat line means the GA committed to a value early and stopped exploring: that timing is solved.
         A line that changes significantly at a specific generation corresponds to the breakthrough moment where
         the GA discovered a better coordinated pattern involving that intersection.
-        Intersections with noisy or unstable lines throughout the run are less critical to overall network performance —
-        changing their timing has little effect on fitness either way, so mutation kept randomizing them without penalty.
+        Intersections with noisy or unstable lines throughout the run are less critical to overall network performance.
+        Changing their timing has little effect on fitness either way, so mutation kept randomizing them without penalty.
+                    
+        It's interesting to note that there's a wide diversity in intersection configurations that it came up with. 
+        When we tested 3 intersections, those 3 became uniform. We expected a more expect a uniform distribution here as well, but the GA found this asymmetrical approach better, at least 20 generations in.
         </p>
 
         </div>
@@ -368,37 +375,36 @@ with tab2:
         display["Fitness"]      = display["Fitness"].round(2)
         st.dataframe(display, use_container_width=True, hide_index=True)
 
-        st.divider()
-        st.markdown("<h3 style='color:#f0f4ff;'>How to Read These Results</h3>", unsafe_allow_html=True)
         st.markdown("""
-        <div style="font-family:'Syne',sans-serif;font-size:0.88rem;color:#cbd5e1;line-height:1.9;max-width:1100px;">
+        <div style="font-family:'Syne',sans-serif;font-size:0.95rem;color:#cbd5e1;line-height:1.9;max-width:1100px;">
 
         <p style="margin-bottom:1.2rem;">
-        <span style="color:#00ff99;font-weight:700;">What is being compared.</span>
-        The baseline condition is SUMO's default fixed-timing plan: 42 seconds of green per phase on every intersection,
-        equal in both directions, with no optimization applied. This is the counterfactual — what the network looks like
-        under standard unoptimized operation. The GA-optimized condition uses the best timing plan found after 20 generations of evolution,
-        applied identically across all runs. Both conditions are evaluated 20 times each with different random seeds
-        to account for stochastic variability in vehicle spawning — some seeds produce heavier traffic than others.
-        The box plots show the full distribution across those 20 runs, not just a single result.
+        <span style="color:#00ff99;font-weight:700;font-size:1.15rem;letter-spacing:0.03em;">What is being compared</span><br>
+
+        The baseline is SUMO's default fixed timing, which is 42 seconds of green per phase on every intersection, equal in both directions, with no optimization applied.           
+        The GA condition uses the best timing plan found after 20 generations of evolution, applied identically across all runs.
+        Both conditions are evaluated 20 times each with different random seeds, so the box plots show the full distribution across varied traffic conditions, not a single result.
+        Some seeds produce heavier traffic than others.
         </p>
 
         <p style="margin-bottom:1.2rem;">
-        <span style="color:#00ff99;font-weight:700;">Why the GA wait time is higher than the GA progress tab shows.</span>
-        The GA Progress tab reports the best single simulation result seen during optimization — a cherry-picked best case.
-        This tab reports the mean across 20 independent runs with varied seeds, which is a more honest measure of
-        real-world performance. Some seeds produce harder traffic conditions where even the optimized plan struggles.
-        The mean is the correct number to use for any performance claim.
+        <span style="color:#00ff99;font-weight:700;font-size:1.15rem;letter-spacing:0.03em;">Why the GA wait time here is higher than the GA Progress tab shows</span><br>
+
+        The GA Progress tab reports the best single simulation result seen during optimization.
+        This tab reports the mean across 20 independent runs with varied seeds, another safeguard to ensure honest results.
+        Some seeds produce harder traffic conditions where even the optimized plan struggles, the mean accounts for that.
         </p>
 
         <p style="margin-bottom:0;">
-        <span style="color:#00ff99;font-weight:700;">What statistical significance means here.</span>
-        Welch's t-test tests whether the two distributions of wait times could plausibly have come from the same underlying population.
+        <span style="color:#00ff99;font-weight:700;font-size:1.15rem;letter-spacing:0.03em;">What statistical significance means here</span><br>
+
+        Welch's t-test checks whether the two wait time distributions could plausibly come from the same underlying population.
         A p-value near zero means: if the GA plan and the default plan were actually identical in performance,
         the probability of observing a difference this large across 20 runs is essentially zero.
-        The result is not caused by lucky random seeds — it holds consistently across all tested conditions.
-        Note that this validity is scoped to this synthetic network and traffic model.
-        It does not automatically generalize to real-world networks with different geometry and empirical demand patterns.
+        The result holds consistently across all tested seeds. it's not a lucky run.
+                    
+        <br><br>
+        <i>Note: this result is scoped to this synthetic simulation, not an exact 1 to 1 translation to real life.</i>
         </p>
 
         </div>
@@ -479,89 +485,103 @@ with tab3:
 
     st.divider()
     st.markdown("<h3 style='color:#f0f4ff;margin-top:0.5rem;'>Theoretical Foundation</h3>", unsafe_allow_html=True)
-
     st.markdown("""
-    <div style="font-family:'Syne',sans-serif;font-size:0.88rem;color:#cbd5e1;line-height:1.9;max-width:1100px;">
+    <div style="font-family:'Syne',sans-serif;font-size:0.95rem;color:#cbd5e1;line-height:1.9;max-width:1100px;">
 
     <p style="margin-bottom:1.2rem;">
-    <span style="color:#818cf8;font-weight:700;">The Search Space Problem.</span>
-    Traffic signal optimization is a combinatorial search problem that grows exponentially with network size.
-    Each intersection has two green phase durations drawn from approximately 70 possible values (10s–80s).
-    For a network of <em>n</em> intersections, the search space contains 70<sup>2n</sup> possible timing combinations.
-    At 3 intersections this is approximately 1.18 × 10<sup>11</sup> — already too large for exhaustive search.
-    At 20 intersections the space is 70<sup>40</sup>, a number with 74 digits.
-    At Thunder Bay scale (113 intersections, 226 genes) the space is effectively infinite.
-    No deterministic algorithm can enumerate this space — a heuristic search strategy is the only viable approach.
+    <span style="color:#818cf8;font-weight:700;font-size:1.15rem;letter-spacing:0.03em;">The Search Space Problem</span><br>
+
+    The search space is every possible combination of timing plans. Each intersection has 2 phases (A green time duration, B green time duration),
+    which can have a value from 10s-80s, approximated as 70 possible values per gene.
+
+    For n intersections, we have 2n genes. Each gene has 70 options, so total combinations is:
+    <br><br>
+    &nbsp;&nbsp;    70<sup>2n</sup>
+    <br><br>
+    With 3 intersections, that's 6 genes, 70<sup>6</sup>.
+                
+    With 20 intersections, that's 40 genes, 70<sup>40</sup>.
+                
+    For a real-life small city, 113 intersections is 226 genes, 70<sup>226</sup>, a number so large it loses meaning.
     </p>
 
     <p style="margin-bottom:1.2rem;">
-    <span style="color:#818cf8;font-weight:700;">Why a Genetic Algorithm.</span>
-    The GA navigates this space by maintaining a population of candidate solutions and applying selection, crossover, and mutation to evolve better solutions over generations.
-    It does not require the fitness landscape to be differentiable or convex — it works through black-box simulation evaluation,
-    making it directly compatible with SUMO. Each candidate solution is loaded into the simulator, vehicles are spawned, and performance is measured.
-    Crossover enables combination of partial solutions: if one chromosome has discovered optimal timing for the western half of the grid
-    and another for the eastern half, crossover can produce a solution that inherits both insights.
+    <span style="color:#818cf8;font-weight:700;font-size:1.15rem;letter-spacing:0.03em;">So why use a Genetic Algorithm?</span><br>
+
+    The GA doesn't check every combination in this space. It maintains a population of 12 candidates, runs them through SUMO to see how good they are (fitness evaluation),
+    then combines the best ones (crossover) and randomly tweaks others (mutation) to find better solutions over time.
+    "Black-box simulation evaluation" means the GA doesn't need to understand anything except whether the different values lead to better results within the simulation.
     </p>
 
     <p style="margin-bottom:1.2rem;">
-    <span style="color:#818cf8;font-weight:700;">The Computational Bottleneck — O(P × G × T).</span>
-    Sequential GA evaluation scales as <strong>O(P × G × T)</strong> where P = population size, G = generations, T = simulation time per evaluation.
+    <span style="color:#818cf8;font-weight:700;font-size:1.15rem;letter-spacing:0.03em;">A naive approach: O(P × G × T)</span><br>
+    
+    We faced a computational bottleneck. Sequential GA evaluation scales as <strong>O(P × G × T)</strong> where P = population size, G = generations, T = simulation time per evaluation.
+
     T is the dominant term and grows with network size: more intersections produce more vehicles requiring more simulation steps,
     and TraCI must process vehicle state at every step.
     At 20 intersections with 1,000+ simultaneous vehicles, T ≈ 10–15 minutes.
-    Sequential evaluation requires P × T minutes per generation — with P=12 and T=10min (conservative estimate),
-    that is 120 minutes per generation, or approximately 2,400 minutes (40 hours) for a full 20-generation run.
-    This is the fundamental barrier to scaling.
+
+    Sequential evaluation requires P × T minutes per generation.
+    
+    With P=12, T=10min,
+    that's 120 minutes per generation, or approximately 2,400 minutes (40 hours) for a full 20-generation run. This revealed the fundamental barrier to scaling.
     </p>
 
     <p style="margin-bottom:1.2rem;">
-    <span style="color:#818cf8;font-weight:700;">Parallel Evaluation — O(G × T).</span>
-    The parallel architecture eliminates P from the complexity by evaluating all P population members simultaneously.
+    <span style="color:#818cf8;font-weight:700;font-size:1.15rem;letter-spacing:0.03em;">Parallel Evaluation: O(G × T)</span><br>
+
+    When we scaled from 3 intersections to 20 intersections, we realized that the naive sequential approach would take way too long.
+    So we implemented a parallel architecture which eliminates P from the complexity by evaluating all P population members across 12 processes (per candidate).
     Each of the 12 population members is assigned to an independent SUMO process with its own TraCI port.
-    All 12 simulations run concurrently — the generation completes in time T, not P×T.
+    Since they run concurrently, the generation completes in time T, not P×T.
+
     This reduces total complexity to <strong>O(G × T)</strong>, a factor-P reduction.
     With P=12 workers matching population size P=12, the theoretical maximum speedup is 12×.
     Observed speedup is approximately 8–12× (8× at 20 intersections, 12.5× at 3 intersections) due to process spawning overhead,
-    file I/O latency from the worker cache, and non-uniform simulation completion times —
-    faster workers must wait for the slowest member of each generation.
+    file I/O latency from the worker cache, and non-uniform simulation completion times.
+    Faster workers must wait for the slowest member of each generation.
     </p>
 
     <p style="margin-bottom:1.2rem;">
-    <span style="color:#818cf8;font-weight:700;">The Coordination Problem.</span>
+    <span style="color:#818cf8;font-weight:700;font-size:1.15rem;letter-spacing:0.03em;">The Coordination Problem</span><br>
+
     Multi-intersection optimization is qualitatively harder than single-intersection optimization.
     At a single intersection, optimal green split depends only on local demand.
     In a connected grid, timing at one intersection directly affects queue buildup on roads shared with adjacent intersections.
-    A long green phase at J_0_0 dispatches a platoon toward J_1_0 — if J_1_0 is not timed to receive them,
+
+    A long green phase at J<sub>0,0</sub> dispatches a platoon toward J<sub>1,0</sub>; if J<sub>1,0</sub> is not timed to receive them,
     they arrive at red and wait, undoing the benefit.
     The globally optimal solution requires coordinated timing across the entire network simultaneously.
-    This is the <em>coordination problem</em>, and explains the two-phase convergence observed at 20 intersections:
-    early generations eliminate poor random solutions, while the breakthrough at generation 7 corresponds to the GA
-    discovering a coherent green wave — a timing cascade where vehicles cleared at one intersection
+    This is the coordination problem, and explains the two-phase convergence observed at 20 intersections:
+    early generations eliminate poor random solutions, while the breakthrough at an early generation corresponds to the GA
+    discovering a coherent green wave; a timing cascade where vehicles cleared at one intersection
     arrive at the next during its green phase, propagating throughput gains across the grid.
     </p>
 
     <p style="margin-bottom:1.2rem;">
-    <span style="color:#818cf8;font-weight:700;">Scaling to Thunder Bay and Beyond.</span>
+    <span style="color:#818cf8;font-weight:700;font-size:1.15rem;letter-spacing:0.03em;">Scaling to city-scale</span><br>
+
     Thunder Bay, Ontario has approximately 113 signalized intersections, requiring a 226-gene chromosome.
-    The O(G × T) complexity means wall-clock time per generation is determined entirely by T —
-    chromosome length does not affect it since the GA itself is fast; the bottleneck is always simulation.
-    Provisioning a cloud instance with 113+ cores (e.g. AWS c6i.32xlarge with 128 vCPUs) would evaluate
-    an entire Thunder Bay-scale generation in approximately time T, the same wall-clock time as the current 20-intersection run.
-    The codebase requires no architectural changes — only the network generation script and compute provisioning would need to scale.
+    The O(G × T) complexity means wall-clock time per generation is determined entirely by T.
+    Chromosome length does not affect it since the GA itself is fast; the bottleneck is always simulation.
+    Provisioning a cloud instance with 113+ cores would evaluate an entire Thunder Bay-scale generation in approximately time T,
+    the same wall-clock time as the current 20-intersection run. (It took a single PC 4 hours to run 20 generations across 20 intersections.)
     </p>
 
     <p style="margin-bottom:0;">
-    <span style="color:#818cf8;font-weight:700;">Why This Qualifies as Big Data Methodology.</span>
+    <span style="color:#818cf8;font-weight:700;font-size:1.15rem;letter-spacing:0.03em;">Big Data Methodology</span><br>
+
     The project addresses the computational tractability problem that defines big data challenges:
+
     the search space is too large to process exhaustively, the evaluation function is expensive,
     and the solution requires parallel distributed computation to execute within practical time constraints.
-    Each 20-intersection GA run processes 12 × 20 = 240 full SUMO simulations,
-    each sustaining 1,000+ vehicles across 8,000 timesteps — generating millions of vehicle-state data points per run.
-    The parallel evaluation framework, file-based inter-process communication, and dynamic chromosome encoding
-    are engineering solutions to the same class of problems addressed by distributed computing frameworks:
-    distributing expensive computation across independent workers and aggregating results efficiently.
-    </p>
 
+    Each 20-intersection GA run processes 12 × 20 = 240 full SUMO simulations,
+    each sustaining 1,000+ vehicles across 8,000 timesteps, generating millions of vehicle-state data points per run.
+                
+    The strategy is: Distribute the heavy computational work across independent workers, collect the metrics, present the data.
+    </p>
     </div>
     """, unsafe_allow_html=True)
 
