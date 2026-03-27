@@ -143,17 +143,17 @@ st.markdown("""
 
 # Helpers
 def load_ga():
-    if os.path.exists("ga_history.csv"):
+    if os.path.exists("for-demo/ga_history.csv"):
         try:
-            return pd.read_csv("ga_history.csv")
+            return pd.read_csv("for-demo/ga_history.csv")
         except Exception:
             return pd.DataFrame()
     return pd.DataFrame()
 
 def load_comparison():
-    if os.path.exists("comparison_results.csv"):
+    if os.path.exists("for-demo/comparison_results.csv"):
         try:
-            return pd.read_csv("comparison_results.csv")
+            return pd.read_csv("for-demo/comparison_results.csv")
         except Exception:
             return pd.DataFrame()
     return pd.DataFrame()
@@ -262,8 +262,8 @@ with tab1:
                     f'</span>', unsafe_allow_html=True)
 
         with top_right:
-            if not df.empty and os.path.exists("ga_history.csv"):
-                mtime = os.path.getmtime("ga_history.csv")
+            if not df.empty and os.path.exists("for-demo/ga_history.csv"):
+                mtime = os.path.getmtime("for-demo/ga_history.csv")
                 elapsed = datetime.now() - datetime.fromtimestamp(mtime)
                 total_seconds = int(elapsed.total_seconds())
                 mins, secs = divmod(total_seconds, 60)
@@ -989,7 +989,7 @@ with tab4:
 
         st.divider()
 
-        st.markdown("<h3 style='color:#f0f4ff;margin-bottom:0.3rem;'>Deviation from Default Timing (42s baseline)</h3>",
+        st.markdown("<h3 style='color:#f0f4ff;margin-bottom:0.3rem;'>Deviadirtion from Default Timing (42s baseline)</h3>",
                     unsafe_allow_html=True)
         st.markdown(
             "<p style='color:#6b7280;font-family:JetBrains Mono;font-size:0.75rem;margin-bottom:1.2rem;'>"
