@@ -1,5 +1,5 @@
 # Urban Traffic Optimizer
-### **Full Title:** 🚦 🚗 Real-Thttps://github.com/tilanayaje/urban-traffic-optimizer/blob/main/README.mdime Big Data Analytics and Visualization for Urban Traffic Flow Optimization 💨💨
+### **Full Title:** 🚦 🚗 Real-Time Big Data Analytics and Visualization for Urban Traffic Flow Optimization 💨💨
 
 ### Description
 This project uses **SUMO** (Simulation of Urban MObility) to simulate urban traffic across a scalable intersection network. A **Genetic Algorithm (PyGAD)** evolves traffic light timings across multiple coordinated intersections while a **live Streamlit dashboard** visualizes optimization progress in real time. The system procedurally generates a standardized traffic network, runs repeated SUMO simulations in **parallel across multiple CPU cores**, evaluates congestion metrics, and evolves better signal timing plans generation by generation.
